@@ -10,7 +10,7 @@ export const Sidebar = () => {
   const [selectedRoute, setSelectedRoute] = useState('/pages/dashboard');
 
   return (
-    <div>
+    <div className="h-[100vh]">
       {/* TODO: Main sidebar content */}
       <div className="overflow-y-scroll sticky top-4 h-[calc(100vh - 32px - 48px)] no-scrollbar">
         <AccountToggle />
