@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { ChevronDown, Edit3, Plus, Search, Trash2 } from 'lucide-react';
 import { BiSolidCategory } from 'react-icons/bi';
 import { MovieTable } from './MovieTable';
+import { useRouter } from 'next/navigation';
 
 // Movie poster data
 // Movie data
@@ -80,6 +81,7 @@ const movieData = [
 const MovieManagerContent: React.FC = () => {
   const [layout, setLayout] = useState<'grid' | 'table'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
+  const router = useRouter();
 
   // Filter movies based on search query
   const filteredMovies = movieData.filter((movie) =>
@@ -161,7 +163,9 @@ const MovieManagerContent: React.FC = () => {
           <DropdownMenuContent className="w-[200px] right-0">
             <DropdownMenuItem
               className="cursor-pointer"
-              onSelect={() => console.log('Thêm phim mới')}
+              onSelect={() => {
+                router.push('/pages/manage-movies/add-movie');
+              }}
             >
               Thêm phim mới
             </DropdownMenuItem>
