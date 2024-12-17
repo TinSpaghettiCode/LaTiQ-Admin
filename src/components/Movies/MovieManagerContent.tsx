@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BsThreeDotsVertical } from 'react-icons/bs';
 import Image from 'next/image';
 import {
@@ -18,74 +18,70 @@ import { BiSolidCategory } from 'react-icons/bi';
 import { MovieTable } from './MovieTable';
 import { useRouter } from 'next/navigation';
 
-// Movie poster data
-// Movie data
-const movieData = [
-  {
-    id: 1,
-    name: 'Inception',
-    isFree: false,
-    genre: 'Sci-Fi',
-    duration: '2h 28min',
-    type: 'Movie',
-    poster: '/rectangle-9.png',
-  },
-  {
-    id: 2,
-    name: 'The Shawshank Redemption',
-    isFree: true,
-    genre: 'Drama',
-    duration: '2h 22min',
-    type: 'Movie',
-    poster: '/rectangle-9-2.png',
-  },
-  {
-    id: 3,
-    name: 'The Godfather',
-    isFree: true,
-    genre: 'Crime',
-    duration: '2h 55min',
-    type: 'Movie',
-    poster: '/rectangle-9-3.png',
-  },
-  {
-    id: 4,
-    name: 'The Dark Knight',
-    isFree: true,
-    genre: 'Action',
-    duration: '2h 32min',
-    type: 'Movie',
-    poster: '/rectangle-9-4.png',
-  },
-  {
-    id: 5,
-    name: 'Pulp Fiction',
-    isFree: true,
-    genre: 'Crime',
-    duration: '2h 34min',
-    type: 'Movie',
-    poster: '/rectangle-9-5.png',
-  },
-  {
-    id: 6,
-    name: "Schindler's List",
-    isFree: true,
-    genre: 'Biography',
-    duration: '3h 15min',
-    type: 'Movie',
-    poster: '/rectangle-9-6.png',
-  },
-  // Add more movie data here...
-];
+import * as Prisma from '@prisma/client';
+import Loading from '../Loading';
 
 const MovieManagerContent: React.FC = () => {
   const [layout, setLayout] = useState<'grid' | 'table'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
+  const [movies, setMovies] = useState<Prisma.Films[]>([]); // State để lưu trữ dữ liệu phim
+  const [pageIndex, setPageIndex] = useState(0); // State để quản lý chỉ số trang
+  const pageSize = 12; // Số lượng phim mỗi lần fetch
+  const [loading, setLoading] = useState(false); // State để quản lý trạng thái loading
   const router = useRouter();
+  const observer = useRef<IntersectionObserver | null>(null); // Ref để lưu trữ observer
+  const lastMovieElementRef = useRef<HTMLDivElement | null>(null);
+  const [totalMovies, setTotalMovies] = useState(0);
+
+  // Gọi API khi component được mount
+  // Gọi API khi component được mount
+  useEffect(() => {
+    const fetchMovies = async () => {
+      if (loading) return; // Ngăn không cho gọi fetch khi đang loading
+      setLoading(true);
+      const response = await fetch(
+        `/pages/api/Film?pageIndex=${pageIndex}&pageSize=${pageSize}`
+      );
+      const data = await response.json();
+
+      if (data.succeeded) {
+        const fetchedMovies = data.result.items;
+        setMovies((prevMovies: Prisma.Films[]) => [
+          ...prevMovies,
+          ...fetchedMovies,
+        ]);
+        setTotalMovies(data.result.totalCount);
+      }
+
+      setLoading(false);
+    };
+
+    fetchMovies();
+  }, [pageIndex, loading]); // Gọi lại khi pageIndex thay đổi
+
+  useEffect(() => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+
+    const callback = (entries: IntersectionObserverEntry[]) => {
+      if (entries[0].isIntersecting) {
+        // Kiểm tra xem pageIndex có nhỏ hơn pageIndex tối đa không
+        const maxPageIndex = Math.ceil(totalMovies / pageSize) - 1; // Tính pageIndex tối đa
+        if (pageIndex < maxPageIndex) {
+          setPageIndex((prevIndex) => prevIndex + 1);
+        }
+      }
+    };
+
+    observer.current = new IntersectionObserver(callback);
+    if (lastMovieElementRef.current) {
+      observer.current.observe(lastMovieElementRef.current);
+    }
+  }, [loading, lastMovieElementRef, totalMovies, pageIndex]);
 
   // Filter movies based on search query
-  const filteredMovies = movieData.filter((movie) =>
-    movie.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredMovies = movies.filter((movie) =>
+    movie.Name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -195,24 +191,27 @@ const MovieManagerContent: React.FC = () => {
       {/* Movie Grid */}
       {layout === 'grid' ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 p-6">
-          {filteredMovies.map((movie) => (
+          {filteredMovies.map((movie: Prisma.Films, index: number) => (
             <Card
-              key={movie.id}
+              key={movie.Id}
               className={`w-full rounded-lg overflow-hidden cursor-pointer hover:border-red-800 border-4`}
+              ref={
+                index === filteredMovies.length - 1 ? lastMovieElementRef : null
+              } // Gán ref cho phần tử cuối cùng
             >
               <CardContent className="p-0">
                 <div className="">
                   <div className="relative w-full h-[calc(100% - 40px)]">
                     <Image
                       alt="movie-poster"
-                      src="/images/movie-poster.png"
+                      src={movie.PosterPath}
                       height={250}
                       width={250}
                     />
                   </div>
 
-                  <span className="block text-base font-semibold py-2 ml-2">
-                    {movie.name}
+                  <span className="block text-base font-semibold py-2 ml-2 px-2">
+                    {movie.Name}
                   </span>
                 </div>
               </CardContent>
@@ -220,7 +219,15 @@ const MovieManagerContent: React.FC = () => {
           ))}
         </div>
       ) : (
-        <MovieTable data={filteredMovies} />
+        // <MovieTable data={filteredMovies} />
+        <Loading />
+      )}
+
+      {/* Hiển thị loading ở dưới cùng */}
+      {loading && (
+        <div className="flex justify-center items-center p-4">
+          <Loading />
+        </div>
       )}
     </div>
   );

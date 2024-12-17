@@ -1,7 +1,8 @@
 // app/layout.tsx
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Sidebar } from '@/components/Sidebar/Sidebar';
 import './globals.css'; // Import CSS toàn cục nếu cần
+import Loading from '@/components/Loading';
 
 export default function RootLayout({
   children,
@@ -11,9 +12,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-stone-100 text-stone-900">
-        <main className="grid gap-4 p-4 grid-cols-[220px,_1fr] no-scrollbar">
+        <main className="grid gap-4 p-4 grid-cols-[220px,_1fr] no-scrollbar min-h-[100vh]">
           <Sidebar />
-          <div>{children}</div>
+          <Suspense fallback={<Loading />}>
+            <div>{children}</div>
+          </Suspense>
         </main>
       </body>
     </html>

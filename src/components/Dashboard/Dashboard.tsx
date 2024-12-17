@@ -1,19 +1,16 @@
 'use client';
 
-import React, { Suspense, lazy } from 'react';
-import Loading from '../Loading';
+import React from 'react';
+import TopBar from './TopBar';
+import Grid from './Grid';
 
 // Lazy load the TopBar and Grid components
-const TopBar = lazy(() => import('./TopBar'));
-const Grid = lazy(() => import('./Grid'));
 
 export const Dashboard = () => {
   return (
     <div className="bg-white rounded-lg pb-4 shadow">
-      <Suspense fallback={<Loading />}>
-        <TopBar />
-        <Grid />
-      </Suspense>
+      <TopBar />
+      <Grid />
     </div>
   );
 };

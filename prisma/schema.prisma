@@ -1,0 +1,339 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AspNetRoleClaims {
+  Id          Int         @id(map: "PK_AspNetRoleClaims") @default(autoincrement())
+  RoleId      String      @db.Uuid
+  ClaimType   String?
+  ClaimValue  String?
+  AspNetRoles AspNetRoles @relation(fields: [RoleId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_AspNetRoleClaims_AspNetRoles_RoleId")
+
+  @@index([RoleId], map: "IX_AspNetRoleClaims_RoleId")
+}
+
+model AspNetRoles {
+  Id               String             @id(map: "PK_AspNetRoles") @db.Uuid
+  Name             String?            @db.VarChar(256)
+  NormalizedName   String?            @unique(map: "RoleNameIndex") @db.VarChar(256)
+  ConcurrencyStamp String?
+  AspNetRoleClaims AspNetRoleClaims[]
+  AspNetUserRoles  AspNetUserRoles[]
+}
+
+model AspNetUserClaims {
+  Id          Int         @id(map: "PK_AspNetUserClaims") @default(autoincrement())
+  UserId      String      @db.Uuid
+  ClaimType   String?
+  ClaimValue  String?
+  AspNetUsers AspNetUsers @relation(fields: [UserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_AspNetUserClaims_AspNetUsers_UserId")
+
+  @@index([UserId], map: "IX_AspNetUserClaims_UserId")
+}
+
+model AspNetUserLogins {
+  LoginProvider       String
+  ProviderKey         String
+  ProviderDisplayName String?
+  UserId              String      @db.Uuid
+  AspNetUsers         AspNetUsers @relation(fields: [UserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_AspNetUserLogins_AspNetUsers_UserId")
+
+  @@id([LoginProvider, ProviderKey], map: "PK_AspNetUserLogins")
+  @@index([UserId], map: "IX_AspNetUserLogins_UserId")
+}
+
+model AspNetUserRoles {
+  UserId      String      @db.Uuid
+  RoleId      String      @db.Uuid
+  AspNetRoles AspNetRoles @relation(fields: [RoleId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_AspNetUserRoles_AspNetRoles_RoleId")
+  AspNetUsers AspNetUsers @relation(fields: [UserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_AspNetUserRoles_AspNetUsers_UserId")
+
+  @@id([UserId, RoleId], map: "PK_AspNetUserRoles")
+  @@index([RoleId], map: "IX_AspNetUserRoles_RoleId")
+}
+
+model AspNetUserTokens {
+  UserId        String      @db.Uuid
+  LoginProvider String
+  Name          String
+  Value         String?
+  AspNetUsers   AspNetUsers @relation(fields: [UserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_AspNetUserTokens_AspNetUsers_UserId")
+
+  @@id([UserId, LoginProvider, Name], map: "PK_AspNetUserTokens")
+}
+
+model AspNetUsers {
+  Id                             String             @id(map: "PK_AspNetUsers") @db.Uuid
+  TokenVersion                   Int
+  RefreshToken                   String?
+  RefreshTokenExpirationDateTime DateTime?          @db.Timestamptz(6)
+  UserName                       String?            @db.VarChar(256)
+  NormalizedUserName             String?            @unique(map: "UserNameIndex") @db.VarChar(256)
+  Email                          String?            @db.VarChar(256)
+  NormalizedEmail                String?            @db.VarChar(256)
+  EmailConfirmed                 Boolean
+  PasswordHash                   String?
+  SecurityStamp                  String?
+  ConcurrencyStamp               String?
+  PhoneNumber                    String?
+  PhoneNumberConfirmed           Boolean
+  TwoFactorEnabled               Boolean
+  LockoutEnd                     DateTime?          @db.Timestamptz(6)
+  LockoutEnabled                 Boolean
+  AccessFailedCount              Int
+  AspNetUserClaims               AspNetUserClaims[]
+  AspNetUserLogins               AspNetUserLogins[]
+  AspNetUserRoles                AspNetUserRoles[]
+  AspNetUserTokens               AspNetUserTokens[]
+  MyFilms                        MyFilms[]
+  Reviews                        Reviews[]
+  UserPlans                      UserPlans[]
+  UserProfiles                   UserProfiles?
+
+  @@index([NormalizedEmail], map: "EmailIndex")
+}
+
+model Casts {
+  Id        String  @id(map: "PK_Casts") @db.Uuid
+  Character String
+  FilmId    String  @db.Uuid
+  PersonId  String  @db.Uuid
+  Films     Films   @relation(fields: [FilmId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_Casts_Films_FilmId")
+  Persons   Persons @relation(fields: [PersonId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_Casts_Persons_PersonId")
+
+  @@index([FilmId], map: "IX_Casts_FilmId")
+  @@index([PersonId], map: "IX_Casts_PersonId")
+}
+
+model Channels {
+  Id          String   @id(map: "PK_Channels") @db.Uuid
+  Name        String
+  CreatedAt   DateTime @db.Timestamptz(6)
+  PostId      String?  @db.Uuid
+  Description String?
+  Posts       Posts?   @relation(fields: [PostId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Channels_Posts_PostId")
+
+  @@index([PostId], map: "IX_Channels_PostId")
+}
+
+model Crews {
+  Id       String  @id(map: "PK_Crews") @db.Uuid
+  Role     String
+  FilmId   String  @db.Uuid
+  PersonId String  @db.Uuid
+  Films    Films   @relation(fields: [FilmId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_Crews_Films_FilmId")
+  Persons  Persons @relation(fields: [PersonId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_Crews_Persons_PersonId")
+
+  @@index([FilmId], map: "IX_Crews_FilmId")
+  @@index([PersonId], map: "IX_Crews_PersonId")
+}
+
+model Episodes {
+  Id        String  @id(map: "PK_Episodes") @db.Uuid
+  Order     Int
+  Title     String
+  Summary   String
+  Source    String
+  Duration  Int
+  StillPath String
+  IsFree    Boolean
+  SeasonId  String  @db.Uuid
+  Seasons   Seasons @relation(fields: [SeasonId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_Episodes_Seasons_SeasonId")
+
+  @@index([SeasonId], map: "IX_Episodes_SeasonId")
+}
+
+model Films {
+  Id            String       @id(map: "PK_Films") @db.Uuid
+  Name          String
+  Overview      String
+  BackdropPath  String
+  PosterPath    String
+  ContentRating String
+  ReleaseDate   DateTime?    @db.Date
+  Casts         Casts[]
+  Crews         Crews[]
+  GenreFilms    GenreFilms[]
+  MyFilms       MyFilms[]
+  Reviews       Reviews[]
+  Seasons       Seasons[]
+  TopicFilms    TopicFilms[]
+}
+
+model GenreFilms {
+  Id      String @id(map: "PK_GenreFilms") @db.Uuid
+  GenreId String @db.Uuid
+  FilmId  String @db.Uuid
+  Films   Films  @relation(fields: [FilmId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_GenreFilms_Films_FilmId")
+  Genres  Genres @relation(fields: [GenreId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_GenreFilms_Genres_GenreId")
+
+  @@index([FilmId], map: "IX_GenreFilms_FilmId")
+  @@index([GenreId], map: "IX_GenreFilms_GenreId")
+}
+
+model Genres {
+  Id         String       @id(map: "PK_Genres") @db.Uuid
+  Name       String
+  GenreFilms GenreFilms[]
+}
+
+model MyFilms {
+  Id                String      @id(map: "PK_MyFilms") @db.Uuid
+  ApplicationUserId String      @db.Uuid
+  FilmId            String      @db.Uuid
+  AspNetUsers       AspNetUsers @relation(fields: [ApplicationUserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_MyFilms_AspNetUsers_ApplicationUserId")
+  Films             Films       @relation(fields: [FilmId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_MyFilms_Films_FilmId")
+
+  @@index([ApplicationUserId], map: "IX_MyFilms_ApplicationUserId")
+  @@index([FilmId], map: "IX_MyFilms_FilmId")
+}
+
+model Payments {
+  Id                String    @id(map: "PK_Payments") @db.Uuid
+  ApplicationUserId String    @db.Uuid
+  PlanId            String    @db.Uuid
+  CreatedAt         DateTime  @db.Timestamptz(6)
+  IsDone            Boolean
+  Persons           Persons[]
+  Plans             Plans[]
+}
+
+model Persons {
+  Id                 String        @id(map: "PK_Persons") @db.Uuid
+  Name               String
+  Gender             Int
+  Popularity         Float
+  ProfilePath        String?
+  Biography          String?
+  KnownForDepartment String?
+  Dob                DateTime?     @db.Date
+  PaymentId          String?       @db.Uuid
+  PostCommentId      String?       @db.Uuid
+  PostId             String?       @db.Uuid
+  Casts              Casts[]
+  Crews              Crews[]
+  Payments           Payments?     @relation(fields: [PaymentId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Persons_Payments_PaymentId")
+  PostComments       PostComments? @relation(fields: [PostCommentId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Persons_PostComments_PostCommentId")
+  Posts              Posts?        @relation(fields: [PostId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Persons_Posts_PostId")
+
+  @@index([PaymentId], map: "IX_Persons_PaymentId")
+  @@index([PostCommentId], map: "IX_Persons_PostCommentId")
+  @@index([PostId], map: "IX_Persons_PostId")
+}
+
+model Plans {
+  Id        String      @id(map: "PK_Plans") @db.Uuid
+  Name      String
+  Price     Int
+  Duration  Int
+  Order     Int
+  PaymentId String?     @db.Uuid
+  Payments  Payments?   @relation(fields: [PaymentId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Plans_Payments_PaymentId")
+  UserPlans UserPlans[]
+
+  @@index([PaymentId], map: "IX_Plans_PaymentId")
+}
+
+model PostComments {
+  Id                String    @id(map: "PK_PostComments") @db.Uuid
+  ApplicationUserId String    @db.Uuid
+  CreatedAt         DateTime  @db.Timestamptz(6)
+  PostId            String    @db.Uuid
+  Content           String
+  Persons           Persons[]
+  Posts             Posts[]
+}
+
+model Posts {
+  Id                String        @id(map: "PK_Posts") @db.Uuid
+  ApplicationUserId String        @db.Uuid
+  CreatedAt         DateTime      @db.Timestamptz(6)
+  UpdatedAt         DateTime      @db.Timestamptz(6)
+  ChannelId         String        @db.Uuid
+  Hashtags          String[]
+  Content           String
+  ImageUrls         String[]
+  Likes             Int
+  PostCommentId     String?       @db.Uuid
+  Channels          Channels[]
+  Persons           Persons[]
+  PostComments      PostComments? @relation(fields: [PostCommentId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Posts_PostComments_PostCommentId")
+
+  @@index([PostCommentId], map: "IX_Posts_PostCommentId")
+}
+
+model Reviews {
+  Id                String      @id(map: "PK_Reviews") @db.Uuid
+  Start             Int
+  Content           String
+  CreateAt          DateTime    @db.Timestamptz(6)
+  FilmId            String      @db.Uuid
+  ApplicationUserId String      @db.Uuid
+  AspNetUsers       AspNetUsers @relation(fields: [ApplicationUserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_Reviews_AspNetUsers_ApplicationUserId")
+  Films             Films       @relation(fields: [FilmId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_Reviews_Films_FilmId")
+
+  @@index([ApplicationUserId], map: "IX_Reviews_ApplicationUserId")
+  @@index([FilmId], map: "IX_Reviews_FilmId")
+}
+
+model Seasons {
+  Id       String     @id(map: "PK_Seasons") @db.Uuid
+  Order    Int
+  Name     String
+  FilmId   String     @db.Uuid
+  Episodes Episodes[]
+  Films    Films      @relation(fields: [FilmId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_Seasons_Films_FilmId")
+
+  @@index([FilmId], map: "IX_Seasons_FilmId")
+}
+
+model TopicFilms {
+  Id      String @id(map: "PK_TopicFilms") @db.Uuid
+  TopicId String @db.Uuid
+  FilmId  String @db.Uuid
+  Films   Films  @relation(fields: [FilmId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_TopicFilms_Films_FilmId")
+  Topics  Topics @relation(fields: [TopicId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_TopicFilms_Topics_TopicId")
+
+  @@index([FilmId], map: "IX_TopicFilms_FilmId")
+  @@index([TopicId], map: "IX_TopicFilms_TopicId")
+}
+
+model Topics {
+  Id         String       @id(map: "PK_Topics") @db.Uuid
+  Name       String
+  Order      Int
+  TopicFilms TopicFilms[]
+}
+
+model UserPlans {
+  Id                String      @id(map: "PK_UserPlans") @db.Uuid
+  StartDate         DateTime    @default(dbgenerated("'-infinity'::date")) @db.Date
+  EndDate           DateTime    @default(dbgenerated("'-infinity'::date")) @db.Date
+  ApplicationUserId String      @db.Uuid
+  PlanId            String      @db.Uuid
+  AspNetUsers       AspNetUsers @relation(fields: [ApplicationUserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_UserPlans_AspNetUsers_ApplicationUserId")
+  Plans             Plans       @relation(fields: [PlanId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_UserPlans_Plans_PlanId")
+
+  @@index([ApplicationUserId], map: "IX_UserPlans_ApplicationUserId")
+  @@index([PlanId], map: "IX_UserPlans_PlanId")
+}
+
+model UserProfiles {
+  Id                String      @id(map: "PK_UserProfiles") @db.Uuid
+  Name              String
+  Avatar            String
+  ApplicationUserId String      @unique(map: "IX_UserProfiles_ApplicationUserId") @db.Uuid
+  AspNetUsers       AspNetUsers @relation(fields: [ApplicationUserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_UserProfiles_AspNetUsers_ApplicationUserId")
+}
+
+model EFMigrationsHistory {
+  MigrationId    String @id(map: "PK___EFMigrationsHistory") @db.VarChar(150)
+  ProductVersion String @db.VarChar(32)
+
+  @@map("__EFMigrationsHistory")
+}

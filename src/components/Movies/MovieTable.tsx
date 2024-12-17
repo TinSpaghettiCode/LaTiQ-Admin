@@ -8,18 +8,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-
-interface Movie {
-  id: number;
-  name: string;
-  isFree: boolean;
-  genre: string;
-  duration: string;
-  type: string;
-}
+import * as Prisma from '@prisma/client';
 
 interface MovieTableProps {
-  data: Movie[];
+  data: Prisma.Films[]; // Dữ liệu phim
+  currentPage: number; // Trang hiện tại
+  totalPages: number; // Tổng số trang
+  onPageChange: (page: number) => void; // Hàm để thay đổi trang
 }
 
 const Pagination = ({
@@ -56,17 +51,16 @@ const Pagination = ({
   );
 };
 
-export const MovieTable: React.FC<MovieTableProps> = ({ data }) => {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedRow, setSelectedRow] = useState<number | null>(null);
+export const MovieTable: React.FC<MovieTableProps> = ({
+  data,
+  currentPage,
+  totalPages,
+  onPageChange,
+}) => {
+  const [selectedRow, setSelectedRow] = useState<string | null>(null);
   const itemsPerPage = 5;
-  const totalPages = Math.ceil(data.length / itemsPerPage);
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const handleRowClick = (id: number) => {
+  const handleRowClick = (id: string) => {
     setSelectedRow(id);
   };
 
@@ -90,15 +84,15 @@ export const MovieTable: React.FC<MovieTableProps> = ({ data }) => {
         <TableBody>
           {paginatedData.map((movie) => (
             <TableRow
-              key={movie.id}
-              onClick={() => handleRowClick(movie.id)}
+              key={movie.Id} // Sử dụng Id từ dữ liệu API
+              onClick={() => handleRowClick(movie.Id)}
               className={`cursor-pointer ${
-                selectedRow === movie.id
+                selectedRow === movie.Id
                   ? 'bg-slate-300 hover:bg-slate-400'
                   : ''
               }`}
             >
-              <TableCell>{movie.name}</TableCell>
+              <TableCell>{movie.Name}</TableCell>
               <TableCell>{movie.isFree ? 'Có' : 'Không'}</TableCell>
               <TableCell>{movie.genre}</TableCell>
               <TableCell>{movie.duration}</TableCell>
@@ -118,7 +112,7 @@ export const MovieTable: React.FC<MovieTableProps> = ({ data }) => {
       <Pagination
         currentPage={currentPage}
         totalPages={totalPages}
-        onPageChange={handlePageChange}
+        onPageChange={onPageChange}
       />
     </div>
   );
