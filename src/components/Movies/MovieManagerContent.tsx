@@ -15,8 +15,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ChevronDown, Edit3, Plus, Search, Trash2 } from 'lucide-react';
 import { BiSolidCategory } from 'react-icons/bi';
-import { MovieTable } from './MovieTable';
+// import { MovieTable } from './MovieTable';
 import { useRouter } from 'next/navigation';
+import { useInView } from 'react-intersection-observer';
 
 import * as Prisma from '@prisma/client';
 import Loading from '../Loading';
@@ -29,16 +30,16 @@ const MovieManagerContent: React.FC = () => {
   const pageSize = 12; // Số lượng phim mỗi lần fetch
   const [loading, setLoading] = useState(false); // State để quản lý trạng thái loading
   const router = useRouter();
-  const observer = useRef<IntersectionObserver | null>(null); // Ref để lưu trữ observer
   const lastMovieElementRef = useRef<HTMLDivElement | null>(null);
   const [totalMovies, setTotalMovies] = useState(0);
+  const { ref, inView } = useInView();
 
-  // Gọi API khi component được mount
   // Gọi API khi component được mount
   useEffect(() => {
     const fetchMovies = async () => {
       if (loading) return; // Ngăn không cho gọi fetch khi đang loading
       setLoading(true);
+
       const response = await fetch(
         `/pages/api/Film?pageIndex=${pageIndex}&pageSize=${pageSize}`
       );
@@ -57,27 +58,14 @@ const MovieManagerContent: React.FC = () => {
     };
 
     fetchMovies();
-  }, [pageIndex, loading]); // Gọi lại khi pageIndex thay đổi
+  }, [pageIndex]);
 
   useEffect(() => {
-    if (loading) return;
-    if (observer.current) observer.current.disconnect();
-
-    const callback = (entries: IntersectionObserverEntry[]) => {
-      if (entries[0].isIntersecting) {
-        // Kiểm tra xem pageIndex có nhỏ hơn pageIndex tối đa không
-        const maxPageIndex = Math.ceil(totalMovies / pageSize) - 1; // Tính pageIndex tối đa
-        if (pageIndex < maxPageIndex) {
-          setPageIndex((prevIndex) => prevIndex + 1);
-        }
-      }
-    };
-
-    observer.current = new IntersectionObserver(callback);
-    if (lastMovieElementRef.current) {
-      observer.current.observe(lastMovieElementRef.current);
+    if (inView && movies.length < totalMovies) {
+      setPageIndex((prevIndex) => prevIndex + 1);
     }
-  }, [loading, lastMovieElementRef, totalMovies, pageIndex]);
+    console.log(movies, 'moviesssss');
+  }, [inView]);
 
   // Filter movies based on search query
   const filteredMovies = movies.filter((movie) =>
@@ -193,7 +181,7 @@ const MovieManagerContent: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 p-6">
           {filteredMovies.map((movie: Prisma.Films, index: number) => (
             <Card
-              key={movie.Id}
+              key={`${movie.Id}-${index}`}
               className={`w-full rounded-lg overflow-hidden cursor-pointer hover:border-red-800 border-4`}
               ref={
                 index === filteredMovies.length - 1 ? lastMovieElementRef : null
@@ -217,6 +205,7 @@ const MovieManagerContent: React.FC = () => {
               </CardContent>
             </Card>
           ))}
+          <div ref={ref}></div> {/* Ref cho phần tử cuối cùng */}
         </div>
       ) : (
         // <MovieTable data={filteredMovies} />
