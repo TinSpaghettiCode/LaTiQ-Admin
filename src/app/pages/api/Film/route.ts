@@ -15,6 +15,13 @@ export async function GET(request: Request) {
   const films: Films[] = await prisma.films.findMany({
     skip: pageIndex * pageSize,
     take: pageSize,
+    include: {
+      GenreFilms: {
+        include: {
+          Genres: true,
+        },
+      },
+    },
   });
 
   const response = {

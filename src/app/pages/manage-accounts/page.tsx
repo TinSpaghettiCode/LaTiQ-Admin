@@ -9,13 +9,12 @@ import { useInView } from 'react-intersection-observer';
 const AccountManager = () => {
   const LIMIT = 15;
   const { data, error, status, fetchNextPage, isFetching } = useInfiniteQuery({
-    queryKey: ['films'],
+    queryKey: ['manage-accounts'],
     queryFn: async ({ pageParam = 0 }) => {
       const response = await fetch(
         `/pages/api/Film?pageIndex=${pageParam}&pageSize=${LIMIT}`
       );
 
-      console.log('fetch Page lan thu ', pageParam + 1);
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
@@ -39,10 +38,6 @@ const AccountManager = () => {
       fetchNextPage();
     }
   }, [inView, fetchNextPage]);
-
-  useEffect(() => {
-    console.log(films, 'films');
-  }, [films]);
 
   useEffect(() => {
     if (data?.pages) {

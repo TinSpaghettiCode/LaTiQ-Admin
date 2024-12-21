@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BsThreeDotsVertical } from 'react-icons/bs';
 import Image from 'next/image';
 import {
@@ -15,57 +15,65 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ChevronDown, Edit3, Plus, Search, Trash2 } from 'lucide-react';
 import { BiSolidCategory } from 'react-icons/bi';
-// import { MovieTable } from './MovieTable';
+import { MovieTable } from './MovieTable';
 import { useRouter } from 'next/navigation';
 import { useInView } from 'react-intersection-observer';
 
 import * as Prisma from '@prisma/client';
 import Loading from '../Loading';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { RiseLoader } from 'react-spinners';
+import { CustomFilmType } from '@/types/customTypes';
 
 const MovieManagerContent: React.FC = () => {
   const [layout, setLayout] = useState<'grid' | 'table'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
-  const [movies, setMovies] = useState<Prisma.Films[]>([]); // State để lưu trữ dữ liệu phim
-  const [pageIndex, setPageIndex] = useState(0); // State để quản lý chỉ số trang
-  const pageSize = 12; // Số lượng phim mỗi lần fetch
-  const [loading, setLoading] = useState(false); // State để quản lý trạng thái loading
+  const [movies, setMovies] = useState<CustomFilmType[]>([]); // State để lưu trữ dữ liệu phim
   const router = useRouter();
-  const lastMovieElementRef = useRef<HTMLDivElement | null>(null);
-  const [totalMovies, setTotalMovies] = useState(0);
   const { ref, inView } = useInView();
+  const LIMIT = 10;
 
-  // Gọi API khi component được mount
+  // Tanstack react-query
+  const { data, error, status, fetchNextPage, isFetching, hasNextPage } =
+    useInfiniteQuery({
+      queryKey: ['films'],
+      queryFn: async ({ pageParam = 0 }) => {
+        const response = await fetch(
+          `/pages/api/Film?pageIndex=${pageParam}&pageSize=${LIMIT}`
+        );
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      },
+      initialPageParam: 0,
+      getNextPageParam: (lastPage) => {
+        return lastPage.result.pageIndex + 1 <
+          Math.ceil(lastPage.result.totalCount / LIMIT)
+          ? lastPage.result.pageIndex + 1
+          : undefined;
+      },
+    });
+
+  const totalPages = data?.pages[0]?.result.totalCount
+    ? Math.ceil(data.pages[0].result.totalCount / LIMIT)
+    : 0;
+
+  // Flatten data from pages
   useEffect(() => {
-    const fetchMovies = async () => {
-      if (loading) return; // Ngăn không cho gọi fetch khi đang loading
-      setLoading(true);
-
-      const response = await fetch(
-        `/pages/api/Film?pageIndex=${pageIndex}&pageSize=${pageSize}`
-      );
-      const data = await response.json();
-
-      if (data.succeeded) {
-        const fetchedMovies = data.result.items;
-        setMovies((prevMovies: Prisma.Films[]) => [
-          ...prevMovies,
-          ...fetchedMovies,
-        ]);
-        setTotalMovies(data.result.totalCount);
-      }
-
-      setLoading(false);
-    };
-
-    fetchMovies();
-  }, [pageIndex]);
-
-  useEffect(() => {
-    if (inView && movies.length < totalMovies) {
-      setPageIndex((prevIndex) => prevIndex + 1);
+    if (data?.pages) {
+      const allMovies = data.pages.flatMap((page) => page.result.items ?? []);
+      setMovies(allMovies);
     }
-    console.log(movies, 'moviesssss');
-  }, [inView]);
+  }, [data]);
+
+  // Fetch next page khi end viewport
+  useEffect(() => {
+    if (inView) {
+      fetchNextPage();
+    }
+  }, [inView, fetchNextPage]);
 
   // Filter movies based on search query
   const filteredMovies = movies.filter((movie) =>
@@ -177,15 +185,20 @@ const MovieManagerContent: React.FC = () => {
       </div>
 
       {/* Movie Grid */}
-      {layout === 'grid' ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 p-6">
+      {status === 'pending' ? (
+        <div className="flex justify-center items-center p-4">
+          <Loading />
+        </div>
+      ) : status === 'error' ? (
+        <div className="flex justify-center items-center p-4">
+          <div>Error: {error?.message}</div>
+        </div>
+      ) : layout === 'grid' ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-6">
           {filteredMovies.map((movie: Prisma.Films, index: number) => (
             <Card
               key={`${movie.Id}-${index}`}
               className={`w-full rounded-lg overflow-hidden cursor-pointer hover:border-red-800 border-4`}
-              ref={
-                index === filteredMovies.length - 1 ? lastMovieElementRef : null
-              } // Gán ref cho phần tử cuối cùng
             >
               <CardContent className="p-0">
                 <div className="">
@@ -208,14 +221,19 @@ const MovieManagerContent: React.FC = () => {
           <div ref={ref}></div> {/* Ref cho phần tử cuối cùng */}
         </div>
       ) : (
-        // <MovieTable data={filteredMovies} />
-        <Loading />
+        <MovieTable
+          data={movies}
+          fetchNextPage={fetchNextPage}
+          totalPages={totalPages}
+          hasNextPage={hasNextPage}
+          isFetching={isFetching}
+        />
       )}
 
-      {/* Hiển thị loading ở dưới cùng */}
-      {loading && (
+      {/* Hiển thị loading ở dưới cùng với layout là grid*/}
+      {isFetching && status != 'pending' && layout === 'grid' && (
         <div className="flex justify-center items-center p-4">
-          <Loading />
+          <RiseLoader color="#c0000d" />
         </div>
       )}
     </div>
