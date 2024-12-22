@@ -68,34 +68,42 @@ model AspNetUserTokens {
 }
 
 model AspNetUsers {
-  Id                             String             @id(map: "PK_AspNetUsers") @db.Uuid
-  TokenVersion                   Int
-  RefreshToken                   String?
-  RefreshTokenExpirationDateTime DateTime?          @db.Timestamptz(6)
-  UserName                       String?            @db.VarChar(256)
-  NormalizedUserName             String?            @unique(map: "UserNameIndex") @db.VarChar(256)
-  Email                          String?            @db.VarChar(256)
-  NormalizedEmail                String?            @db.VarChar(256)
-  EmailConfirmed                 Boolean
-  PasswordHash                   String?
-  SecurityStamp                  String?
-  ConcurrencyStamp               String?
-  PhoneNumber                    String?
-  PhoneNumberConfirmed           Boolean
-  TwoFactorEnabled               Boolean
-  LockoutEnd                     DateTime?          @db.Timestamptz(6)
-  LockoutEnabled                 Boolean
-  AccessFailedCount              Int
-  AspNetUserClaims               AspNetUserClaims[]
-  AspNetUserLogins               AspNetUserLogins[]
-  AspNetUserRoles                AspNetUserRoles[]
-  AspNetUserTokens               AspNetUserTokens[]
-  MyFilms                        MyFilms[]
-  Reviews                        Reviews[]
-  UserPlans                      UserPlans[]
-  UserProfiles                   UserProfiles?
+  Id                                               String               @id(map: "PK_AspNetUsers") @db.Uuid
+  TokenVersion                                     Int
+  RefreshToken                                     String?
+  RefreshTokenExpirationDateTime                   DateTime?            @db.Timestamptz(6)
+  UserName                                         String?              @db.VarChar(256)
+  NormalizedUserName                               String?              @unique(map: "UserNameIndex") @db.VarChar(256)
+  Email                                            String?              @db.VarChar(256)
+  NormalizedEmail                                  String?              @db.VarChar(256)
+  EmailConfirmed                                   Boolean
+  PasswordHash                                     String?
+  SecurityStamp                                    String?
+  ConcurrencyStamp                                 String?
+  PhoneNumber                                      String?
+  PhoneNumberConfirmed                             Boolean
+  TwoFactorEnabled                                 Boolean
+  LockoutEnd                                       DateTime?            @db.Timestamptz(6)
+  LockoutEnabled                                   Boolean
+  AccessFailedCount                                Int
+  PaymentId                                        String?              @db.Uuid
+  FcmToken                                         String?
+  AspNetUserClaims                                 AspNetUserClaims[]
+  AspNetUserLogins                                 AspNetUserLogins[]
+  AspNetUserRoles                                  AspNetUserRoles[]
+  AspNetUserTokens                                 AspNetUserTokens[]
+  Payments_AspNetUsers_PaymentIdToPayments         Payments?            @relation("AspNetUsers_PaymentIdToPayments", fields: [PaymentId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_AspNetUsers_Payments_PaymentId")
+  MyFilms                                          MyFilms[]
+  Payments_Payments_ApplicationUserIdToAspNetUsers Payments[]           @relation("Payments_ApplicationUserIdToAspNetUsers")
+  PostComments                                     PostComments[]
+  Posts                                            Posts[]
+  Reviews                                          Reviews[]
+  TrackingProgresses                               TrackingProgresses[]
+  UserChannels                                     UserChannels[]
+  UserProfiles                                     UserProfiles?
 
   @@index([NormalizedEmail], map: "EmailIndex")
+  @@index([PaymentId], map: "IX_AspNetUsers_PaymentId")
 }
 
 model Casts {
@@ -111,14 +119,12 @@ model Casts {
 }
 
 model Channels {
-  Id          String   @id(map: "PK_Channels") @db.Uuid
-  Name        String
-  CreatedAt   DateTime @db.Timestamptz(6)
-  PostId      String?  @db.Uuid
-  Description String?
-  Posts       Posts?   @relation(fields: [PostId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Channels_Posts_PostId")
-
-  @@index([PostId], map: "IX_Channels_PostId")
+  Id           String         @id(map: "PK_Channels") @db.Uuid
+  Name         String
+  Description  String
+  CreatedAt    DateTime       @db.Timestamptz(6)
+  Posts        Posts[]
+  UserChannels UserChannels[]
 }
 
 model Crews {
@@ -134,16 +140,17 @@ model Crews {
 }
 
 model Episodes {
-  Id        String  @id(map: "PK_Episodes") @db.Uuid
-  Order     Int
-  Title     String
-  Summary   String
-  Source    String
-  Duration  Int
-  StillPath String
-  IsFree    Boolean
-  SeasonId  String  @db.Uuid
-  Seasons   Seasons @relation(fields: [SeasonId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_Episodes_Seasons_SeasonId")
+  Id                 String               @id(map: "PK_Episodes") @db.Uuid
+  Order              Int
+  Title              String
+  Summary            String
+  Source             String
+  Duration           Int
+  StillPath          String
+  IsFree             Boolean
+  SeasonId           String               @db.Uuid
+  Seasons            Seasons              @relation(fields: [SeasonId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_Episodes_Seasons_SeasonId")
+  TrackingProgresses TrackingProgresses[]
 
   @@index([SeasonId], map: "IX_Episodes_SeasonId")
 }
@@ -194,77 +201,73 @@ model MyFilms {
 }
 
 model Payments {
-  Id                String    @id(map: "PK_Payments") @db.Uuid
-  ApplicationUserId String    @db.Uuid
-  PlanId            String    @db.Uuid
-  CreatedAt         DateTime  @db.Timestamptz(6)
-  IsDone            Boolean
-  Persons           Persons[]
-  Plans             Plans[]
+  Id                                                  String        @id(map: "PK_Payments") @db.Uuid
+  ApplicationUserId                                   String        @db.Uuid
+  PlanId                                              String        @db.Uuid
+  CreatedAt                                           DateTime      @db.Timestamptz(6)
+  IsDone                                              Boolean
+  Amount                                              Int?
+  EndDate                                             DateTime?     @db.Date
+  StartDate                                           DateTime?     @db.Date
+  AspNetUsers_AspNetUsers_PaymentIdToPayments         AspNetUsers[] @relation("AspNetUsers_PaymentIdToPayments")
+  AspNetUsers_Payments_ApplicationUserIdToAspNetUsers AspNetUsers   @relation("Payments_ApplicationUserIdToAspNetUsers", fields: [ApplicationUserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_Payments_AspNetUsers_ApplicationUserId")
+  Plans                                               Plans         @relation(fields: [PlanId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_Payments_Plans_PlanId")
+
+  @@index([ApplicationUserId], map: "IX_Payments_ApplicationUserId")
+  @@index([PlanId], map: "IX_Payments_PlanId")
 }
 
 model Persons {
-  Id                 String        @id(map: "PK_Persons") @db.Uuid
+  Id                 String    @id(map: "PK_Persons") @db.Uuid
   Name               String
   Gender             Int
-  Popularity         Float
+  Popularity         Float?
   ProfilePath        String?
   Biography          String?
   KnownForDepartment String?
-  Dob                DateTime?     @db.Date
-  PaymentId          String?       @db.Uuid
-  PostCommentId      String?       @db.Uuid
-  PostId             String?       @db.Uuid
+  Dob                DateTime? @db.Date
   Casts              Casts[]
   Crews              Crews[]
-  Payments           Payments?     @relation(fields: [PaymentId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Persons_Payments_PaymentId")
-  PostComments       PostComments? @relation(fields: [PostCommentId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Persons_PostComments_PostCommentId")
-  Posts              Posts?        @relation(fields: [PostId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Persons_Posts_PostId")
-
-  @@index([PaymentId], map: "IX_Persons_PaymentId")
-  @@index([PostCommentId], map: "IX_Persons_PostCommentId")
-  @@index([PostId], map: "IX_Persons_PostId")
 }
 
 model Plans {
-  Id        String      @id(map: "PK_Plans") @db.Uuid
-  Name      String
-  Price     Int
-  Duration  Int
-  Order     Int
-  PaymentId String?     @db.Uuid
-  Payments  Payments?   @relation(fields: [PaymentId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Plans_Payments_PaymentId")
-  UserPlans UserPlans[]
-
-  @@index([PaymentId], map: "IX_Plans_PaymentId")
+  Id       String     @id(map: "PK_Plans") @db.Uuid
+  Name     String
+  Price    Int
+  Duration Int
+  Order    Int
+  Payments Payments[]
 }
 
 model PostComments {
-  Id                String    @id(map: "PK_PostComments") @db.Uuid
-  ApplicationUserId String    @db.Uuid
-  CreatedAt         DateTime  @db.Timestamptz(6)
-  PostId            String    @db.Uuid
+  Id                String      @id(map: "PK_PostComments") @db.Uuid
+  CreatedAt         DateTime    @db.Timestamptz(6)
   Content           String
-  Persons           Persons[]
-  Posts             Posts[]
+  PostId            String      @db.Uuid
+  ApplicationUserId String      @db.Uuid
+  AspNetUsers       AspNetUsers @relation(fields: [ApplicationUserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_PostComments_AspNetUsers_ApplicationUserId")
+  Posts             Posts       @relation(fields: [PostId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_PostComments_Posts_PostId")
+
+  @@index([ApplicationUserId], map: "IX_PostComments_ApplicationUserId")
+  @@index([PostId], map: "IX_PostComments_PostId")
 }
 
 model Posts {
-  Id                String        @id(map: "PK_Posts") @db.Uuid
-  ApplicationUserId String        @db.Uuid
-  CreatedAt         DateTime      @db.Timestamptz(6)
-  UpdatedAt         DateTime      @db.Timestamptz(6)
-  ChannelId         String        @db.Uuid
+  Id                String         @id(map: "PK_Posts") @db.Uuid
+  CreatedAt         DateTime       @db.Timestamptz(6)
+  UpdatedAt         DateTime       @db.Timestamptz(6)
   Hashtags          String[]
   Content           String
   ImageUrls         String[]
   Likes             Int
-  PostCommentId     String?       @db.Uuid
-  Channels          Channels[]
-  Persons           Persons[]
-  PostComments      PostComments? @relation(fields: [PostCommentId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Posts_PostComments_PostCommentId")
+  ApplicationUserId String         @db.Uuid
+  ChannelId         String         @db.Uuid
+  PostComments      PostComments[]
+  AspNetUsers       AspNetUsers    @relation(fields: [ApplicationUserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_Posts_AspNetUsers_ApplicationUserId")
+  Channels          Channels       @relation(fields: [ChannelId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_Posts_Channels_ChannelId")
 
-  @@index([PostCommentId], map: "IX_Posts_PostCommentId")
+  @@index([ApplicationUserId], map: "IX_Posts_ApplicationUserId")
+  @@index([ChannelId], map: "IX_Posts_ChannelId")
 }
 
 model Reviews {
@@ -310,19 +313,6 @@ model Topics {
   TopicFilms TopicFilms[]
 }
 
-model UserPlans {
-  Id                String      @id(map: "PK_UserPlans") @db.Uuid
-  StartDate         DateTime    @default(dbgenerated("'-infinity'::date")) @db.Date
-  EndDate           DateTime    @default(dbgenerated("'-infinity'::date")) @db.Date
-  ApplicationUserId String      @db.Uuid
-  PlanId            String      @db.Uuid
-  AspNetUsers       AspNetUsers @relation(fields: [ApplicationUserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_UserPlans_AspNetUsers_ApplicationUserId")
-  Plans             Plans       @relation(fields: [PlanId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_UserPlans_Plans_PlanId")
-
-  @@index([ApplicationUserId], map: "IX_UserPlans_ApplicationUserId")
-  @@index([PlanId], map: "IX_UserPlans_PlanId")
-}
-
 model UserProfiles {
   Id                String      @id(map: "PK_UserProfiles") @db.Uuid
   Name              String
@@ -336,4 +326,38 @@ model EFMigrationsHistory {
   ProductVersion String @db.VarChar(32)
 
   @@map("__EFMigrationsHistory")
+}
+
+model TrackingProgresses {
+  Id                String      @id(map: "PK_TrackingProgresses") @db.Uuid
+  Progress          Int
+  EpisodeId         String      @db.Uuid
+  ApplicationUserId String      @db.Uuid
+  AspNetUsers       AspNetUsers @relation(fields: [ApplicationUserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_TrackingProgresses_AspNetUsers_ApplicationUserId")
+  Episodes          Episodes    @relation(fields: [EpisodeId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_TrackingProgresses_Episodes_EpisodeId")
+
+  @@index([ApplicationUserId], map: "IX_TrackingProgresses_ApplicationUserId")
+  @@index([EpisodeId], map: "IX_TrackingProgresses_EpisodeId")
+}
+
+model UserChannels {
+  Id                String      @id(map: "PK_UserChannels") @db.Uuid
+  ChannelId         String      @db.Uuid
+  ApplicationUserId String      @db.Uuid
+  AspNetUsers       AspNetUsers @relation(fields: [ApplicationUserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_UserChannels_AspNetUsers_ApplicationUserId")
+  Channels          Channels    @relation(fields: [ChannelId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_UserChannels_Channels_ChannelId")
+
+  @@index([ApplicationUserId], map: "IX_UserChannels_ApplicationUserId")
+  @@index([ChannelId], map: "IX_UserChannels_ChannelId")
+}
+
+model UserNotifications {
+  Id                String   @id(map: "PK_UserNotifications") @db.Uuid
+  ApplicationUserId String?  @db.Uuid
+  Category          Int
+  CreatedDateTime   DateTime @db.Timestamptz(6)
+  ReadStatus        Int
+  Title             String
+  Body              String
+  Params            String
 }

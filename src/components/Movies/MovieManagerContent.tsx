@@ -23,12 +23,13 @@ import * as Prisma from '@prisma/client';
 import Loading from '../Loading';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { RiseLoader } from 'react-spinners';
-import { CustomFilmType } from '@/types/customTypes';
+import { CustomDetailFilmType, CustomFilmType } from '@/types/customTypes';
 
 const MovieManagerContent: React.FC = () => {
   const [layout, setLayout] = useState<'grid' | 'table'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [movies, setMovies] = useState<CustomFilmType[]>([]); // State để lưu trữ dữ liệu phim
+  const [selectedMovie, setSelectedMovie] = useState<CustomDetailFilmType>();
   const router = useRouter();
   const { ref, inView } = useInView();
   const LIMIT = 10;
@@ -39,7 +40,7 @@ const MovieManagerContent: React.FC = () => {
       queryKey: ['films'],
       queryFn: async ({ pageParam = 0 }) => {
         const response = await fetch(
-          `/pages/api/Film?pageIndex=${pageParam}&pageSize=${LIMIT}`
+          `/api/Film?pageIndex=${pageParam}&pageSize=${LIMIT}`
         );
 
         if (!response.ok) {
@@ -79,6 +80,19 @@ const MovieManagerContent: React.FC = () => {
   const filteredMovies = movies.filter((movie) =>
     movie.Name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Lấy thông tin film khi click
+  const handleSelectMovie = async (id: string) => {
+    const response = await fetch(`/pages/api/Film/${id}`);
+    const data = await response.json();
+    setSelectedMovie(data);
+  };
+
+  useEffect(() => {
+    if (selectedMovie) {
+      console.log(selectedMovie, 'movieeeee');
+    }
+  }, [selectedMovie]);
 
   return (
     <div className="flex-1">
@@ -200,7 +214,10 @@ const MovieManagerContent: React.FC = () => {
               key={`${movie.Id}-${index}`}
               className={`w-full rounded-lg overflow-hidden cursor-pointer hover:border-red-800 border-4`}
             >
-              <CardContent className="p-0">
+              <CardContent
+                className="p-0"
+                onClick={() => handleSelectMovie(movie.Id)}
+              >
                 <div className="">
                   <div className="relative w-full h-[calc(100% - 40px)]">
                     <Image

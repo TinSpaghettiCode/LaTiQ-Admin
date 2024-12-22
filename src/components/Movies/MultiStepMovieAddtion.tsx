@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,8 +13,10 @@ import {
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CalendarIcon, ArrowLeft } from 'lucide-react';
+import { CalendarIcon, ArrowLeft, Link } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useEdgeStore } from '@/lib/edgestore';
+import { SingleImageDropzone } from '../SingleImageDropzone';
 
 const steps = [
   { id: 1, title: 'Thông tin phim' },
@@ -162,11 +164,57 @@ function Sidebar({ currentStep }: { currentStep: number }) {
 }
 
 function MovieImageUpload() {
+  const [backdropImage, setBackdropImage] = useState<File>();
+  const [backdropUrl, setBackdropUrl] = useState<{
+    url: string;
+    thumbnailUrl: string | null;
+  }>();
+  const [posterImage, setPosterImage] = useState<File>();
+  const [posterUrl, setPosterUrl] = useState<{
+    url: string;
+    thumbnailUrl: string | null;
+  }>();
+  const { edgestore } = useEdgeStore();
+
+  useEffect(() => {
+    if (backdropUrl) {
+      console.log(backdropUrl, 'backdroppppp');
+    }
+  }, [backdropUrl]);
+
   return (
     <div className="space-y-6 mb-20">
-      <div className="relative h-[633.77px] bg-[#f1f1f1] rounded-[5px] flex flex-col items-center justify-center mb-8">
+      {/* <div
+        className="relative h-[633.77px] bg-[#f1f1f1] rounded-[5px] flex flex-col items-center justify-center mb-8 cursor-pointer"
+        onClick={async () => {
+          if (backdropImage) {
+            const res = await edgestore.myPublicImages.upload({
+              file: backdropImage,
+              onProgressChange: (progress) => {
+                // you can use this to show a progress bar
+                console.log(progress);
+              },
+            });
+
+            // save data here
+            setBackdropUrl({
+              url: res.url,
+              thumbnailUrl: 'thumbnailUrl' in res ? res.thumbnailUrl : '',
+            });
+          }
+        }}
+      >
+        <input
+          type="file"
+          id="backdropUpload"
+          className="hidden"
+          accept="image/*"
+          onChange={(e) => {
+            setBackdropImage(e.target.files?.[0]);
+          }}
+        />
         <img
-          src="https://via.placeholder.com/593x189"
+          src={backdropImage}
           alt="Backdrop placeholder"
           className="w-[593px] h-[189px] mb-4"
         />
@@ -174,17 +222,55 @@ function MovieImageUpload() {
           <span className="font-bold text-[#7a7474] underline">Nhấn</span>
           <span className="font-light"> để chọn Backdrop</span>
         </p>
-      </div>
-      <div className="absolute left-[650px] top-[350px] w-[287.48px] h-[437.01px] bg-[#f1f1f1] rounded-[10px] border-8 border-white flex flex-col items-center justify-center">
-        <img
-          src="https://via.placeholder.com/149x274"
-          alt="Poster placeholder"
-          className="w-[149px] h-[274px] mb-4"
+      </div> */}
+      <div className="relative h-[633.77px] bg-[#f1f1f1] rounded-[5px] flex flex-col items-center justify-center mb-8 cursor-pointer">
+        <SingleImageDropzone
+          width={800}
+          height={600}
+          value={backdropImage}
+          onChange={(file) => {
+            setBackdropImage(file);
+          }}
         />
-        <p className="text-lg text-center">
-          <span className="font-bold text-[#908b8b] underline">Nhấn</span>
-          <span className="font-light"> để chọn Poster</span>
-        </p>
+        {/* Nút submit sẽ xử lý vấn đề này */}
+        {/* <Button
+          onClick={async () => {
+            if (backdropImage) {
+              const res = await edgestore.myPublicImages.upload({
+                file: backdropImage,
+                onProgressChange: (progress) => {
+                  // you can use this to show a progress bar
+                  console.log(progress);
+                },
+              });
+              // you can run some server action or api here
+              // to add the necessary data to your database
+              setBackdropUrl({
+                url: res.url,
+                thumbnailUrl: 'thumbnailUrl' in res ? res.thumbnailUrl : '',
+              });
+            }
+          }}
+        >
+          Upload
+        </Button>
+        {backdropUrl?.url && (
+          <Link href={backdropUrl.url} target="_blank"></Link>
+        )}
+        {backdropUrl?.thumbnailUrl && (
+          <Link href={backdropUrl.thumbnailUrl} target="_blank"></Link>
+        )} */}
+      </div>
+
+      <div className="absolute left-[650px] top-[350px] w-[287.48px] h-[437.01px] bg-[#f1f1f1] rounded-[10px] border-8 border-white flex flex-col items-center justify-center">
+        <SingleImageDropzone
+          width={250}
+          height={400}
+          value={posterImage}
+          onChange={(file) => {
+            setPosterImage(file);
+          }}
+        />
       </div>
     </div>
   );
@@ -223,10 +309,6 @@ function MovieInfoForm({
         </PopoverContent>
       </Popover>
       <Textarea placeholder="Tổng quan" />
-      <div className="flex gap-4">
-        <Input placeholder="Poster phim" />
-        <Input placeholder="Backdrop phim" />
-      </div>
       <Input placeholder="Thể loại" />
     </div>
   );

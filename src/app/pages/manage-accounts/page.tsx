@@ -12,7 +12,7 @@ const AccountManager = () => {
     queryKey: ['manage-accounts'],
     queryFn: async ({ pageParam = 0 }) => {
       const response = await fetch(
-        `/pages/api/Film?pageIndex=${pageParam}&pageSize=${LIMIT}`
+        `/api/Film?pageIndex=${pageParam}&pageSize=${LIMIT}`
       );
 
       if (!response.ok) {

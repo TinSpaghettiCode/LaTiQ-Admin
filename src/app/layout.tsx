@@ -7,6 +7,7 @@ import Loading from '@/components/Loading';
 import { useRouter } from 'next/navigation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { EdgeStoreProvider } from '@/lib/edgestore';
 
 const queryClient = new QueryClient();
 
@@ -28,7 +29,9 @@ export default function RootLayout({
           <main className="grid gap-4 p-4 grid-cols-[220px,_1fr] no-scrollbar min-h-[100vh]">
             <Sidebar />
             <Suspense fallback={<Loading />}>
-              <div>{children}</div>
+              <EdgeStoreProvider>
+                <div>{children}</div>
+              </EdgeStoreProvider>
             </Suspense>
             <ReactQueryDevtools initialIsOpen={false} />
           </main>
