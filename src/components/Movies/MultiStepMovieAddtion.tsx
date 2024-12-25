@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -13,10 +16,25 @@ import {
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CalendarIcon, ArrowLeft, Link } from 'lucide-react';
+import { CalendarIcon, ArrowLeft, X, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEdgeStore } from '@/lib/edgestore';
 import { SingleImageDropzone } from '../SingleImageDropzone';
+import { vi } from 'date-fns/locale';
+import { GenreSelect } from './GenreSelect';
+import { FileState, MultiFileDropzone } from '../MultiFileDropzone';
+import { Switch } from '../ui/switch';
+import { Episodes, Seasons } from '@prisma/client';
+import EpisodeForm from './EpisodeForm';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
+import { v4 as uuidv4 } from 'uuid';
+import { CustomDetailFilmType } from '@/types/customTypes';
 
 const steps = [
   { id: 1, title: 'Thông tin phim' },
@@ -26,8 +44,63 @@ const steps = [
 ];
 
 export function MultiStepMovieAddition() {
+  // Film được tạo
+  const [newFilm, setNewFilm] = useState<CustomDetailFilmType>({
+    Id: uuidv4(),
+    Name: '',
+    Overview: '',
+    BackdropPath: '',
+    PosterPath: '',
+    ContentRating: '',
+    ReleaseDate: new Date(),
+    GenreFilms: [],
+    Seasons: [],
+    Crews: [],
+    Casts: [],
+  });
+
+  useEffect(() => {
+    console.log(newFilm, 'newFilmmmm');
+  });
+
   const [currentStep, setCurrentStep] = useState(1);
+  // Variables for step 1
+  const [backdropImage, setBackdropImage] = useState<File>();
+  const [backdropUrl, setBackdropUrl] = useState<{
+    url: string;
+    thumbnailUrl: string | null;
+  }>();
+  const [posterImage, setPosterImage] = useState<File>();
+  const [posterUrl, setPosterUrl] = useState<{
+    url: string;
+    thumbnailUrl: string | null;
+  }>();
+  const { edgestore } = useEdgeStore();
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [date, setDate] = useState<Date>();
+  const [selectedType, setSelectedType] = useState<'single' | 'series'>(
+    'single'
+  );
+
+  // Variables for step 2
+  const [fileStates, setFileStates] = useState<FileState[]>([]);
+  const [episodes, setEpisodes] = useState<Episodes[]>([
+    {
+      Id: '1',
+      Order: 1,
+      Title: '',
+      IsFree: false,
+      Source: '',
+      Duration: 0,
+      StillPath: '',
+      SeasonId: '1',
+      Summary: '',
+    },
+  ]);
+
+  useEffect(() => {
+    console.log(episodes, 'episodes');
+  }, [episodes]);
 
   const nextStep = () => {
     if (currentStep < steps.length) {
@@ -60,12 +133,40 @@ export function MultiStepMovieAddition() {
         >
           {currentStep === 1 && (
             <>
-              <MovieImageUpload />
-              <MovieInfoForm date={date} setDate={setDate} />
-              <MovieTypeSelection />
+              <MovieImageUpload
+                backdropImage={backdropImage}
+                setBackdropImage={setBackdropImage}
+                backdropUrl={backdropUrl}
+                setBackdropUrl={setBackdropUrl}
+                posterImage={posterImage}
+                setPosterImage={setPosterImage}
+                posterUrl={posterUrl}
+                setPosterUrl={setPosterUrl}
+              />
+              <MovieInfoForm
+                date={date}
+                setDate={setDate}
+                selectedGenres={selectedGenres}
+                setSelectedGenres={setSelectedGenres}
+              />
+              <MovieTypeSelection
+                selectedType={selectedType}
+                setSelectedType={setSelectedType}
+              />
             </>
           )}
-          {currentStep === 2 && <UploadMovie />}
+          {currentStep === 2 &&
+            (selectedType === 'single' ? (
+              <UploadMovieSingle
+                fileStates={fileStates}
+                setFileStates={setFileStates}
+                edgestore={edgestore}
+                episodes={episodes}
+                setEpisodes={setEpisodes}
+              />
+            ) : (
+              <UploadMovieSeries newFilm={newFilm} setNewFilm={setNewFilm} />
+            ))}
           {currentStep === 3 && <ProductionTeam />}
           {currentStep === 4 && <CastMembers />}
           <div className="flex justify-between">
@@ -163,19 +264,25 @@ function Sidebar({ currentStep }: { currentStep: number }) {
   );
 }
 
-function MovieImageUpload() {
-  const [backdropImage, setBackdropImage] = useState<File>();
-  const [backdropUrl, setBackdropUrl] = useState<{
-    url: string;
-    thumbnailUrl: string | null;
-  }>();
-  const [posterImage, setPosterImage] = useState<File>();
-  const [posterUrl, setPosterUrl] = useState<{
-    url: string;
-    thumbnailUrl: string | null;
-  }>();
-  const { edgestore } = useEdgeStore();
-
+function MovieImageUpload({
+  backdropImage,
+  setBackdropImage,
+  backdropUrl,
+  setBackdropUrl,
+  posterImage,
+  setPosterImage,
+  posterUrl,
+  setPosterUrl,
+}: {
+  backdropImage: File | undefined;
+  setBackdropImage: (file: File) => void;
+  backdropUrl: { url: string; thumbnailUrl: string | null } | undefined;
+  setBackdropUrl: (url: { url: string; thumbnailUrl: string | null }) => void;
+  posterImage: File | undefined;
+  setPosterImage: (file: File) => void;
+  posterUrl: { url: string; thumbnailUrl: string | null } | undefined;
+  setPosterUrl: (url: { url: string; thumbnailUrl: string | null }) => void;
+}) {
   useEffect(() => {
     if (backdropUrl) {
       console.log(backdropUrl, 'backdroppppp');
@@ -228,8 +335,10 @@ function MovieImageUpload() {
           width={800}
           height={600}
           value={backdropImage}
-          onChange={(file) => {
-            setBackdropImage(file);
+          onChange={(file?: File) => {
+            if (file) {
+              setBackdropImage(file);
+            }
           }}
         />
         {/* Nút submit sẽ xử lý vấn đề này */}
@@ -267,8 +376,10 @@ function MovieImageUpload() {
           width={250}
           height={400}
           value={posterImage}
-          onChange={(file) => {
-            setPosterImage(file);
+          onChange={(file?: File) => {
+            if (file) {
+              setPosterImage(file);
+            }
           }}
         />
       </div>
@@ -279,10 +390,18 @@ function MovieImageUpload() {
 function MovieInfoForm({
   date,
   setDate,
+  selectedGenres,
+  setSelectedGenres,
 }: {
   date: Date | undefined;
   setDate: (date: Date | undefined) => void;
+  selectedGenres: string[];
+  setSelectedGenres: (genres: string[]) => void;
 }) {
+  useEffect(() => {
+    console.log(selectedGenres);
+  }, [selectedGenres]);
+
   return (
     <div className="space-y-4">
       <Input placeholder="Tên phim" />
@@ -296,7 +415,11 @@ function MovieInfoForm({
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date ? format(date, 'PPP') : <span>Ngày phát hành</span>}
+            {date ? (
+              format(date, 'dd/MM/yyyy', { locale: vi })
+            ) : (
+              <span>Ngày phát hành</span>
+            )}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0">
@@ -305,20 +428,24 @@ function MovieInfoForm({
             selected={date}
             onSelect={setDate}
             initialFocus
+            locale={vi}
           />
         </PopoverContent>
       </Popover>
       <Textarea placeholder="Tổng quan" />
-      <Input placeholder="Thể loại" />
+
+      <GenreSelect onChange={setSelectedGenres} />
     </div>
   );
 }
 
-function MovieTypeSelection() {
-  const [selectedType, setSelectedType] = useState<'single' | 'series'>(
-    'single'
-  );
-
+function MovieTypeSelection({
+  selectedType,
+  setSelectedType,
+}: {
+  selectedType: 'single' | 'series';
+  setSelectedType: (type: 'single' | 'series') => void;
+}) {
   return (
     <div className="flex gap-4">
       <div
@@ -356,15 +483,220 @@ function MovieTypeSelection() {
   );
 }
 
-function UploadMovie() {
+function UploadMovieSingle({
+  fileStates,
+  setFileStates,
+  edgestore,
+  episodes,
+  setEpisodes,
+}: {
+  fileStates: FileState[];
+  setFileStates: (fileStates: FileState[]) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  edgestore: any;
+  episodes: Episodes[];
+  setEpisodes: (episode: Episodes[]) => void;
+}) {
+  function updateFileProgress(key: string, progress: FileState['progress']) {
+    setFileStates((fileStates: FileState[]) => {
+      const newFileStates = structuredClone(fileStates);
+      const fileState = newFileStates.find(
+        (fileState) => fileState.key === key
+      );
+      if (fileState) {
+        fileState.progress = progress;
+      }
+      return newFileStates;
+    });
+  }
+
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Tải phim lên</h2>
-      <Input type="file" accept="video/*" />
-      <p className="text-sm text-gray-500">
-        Hỗ trợ các định dạng: MP4, AVI, MKV (tối đa 5GB)
-      </p>
+    <div className="flex flex-col space-y-4 items-center justify-center">
+      <img
+        className="w-[200px] h-[200px]"
+        alt="Glossy"
+        src="/images/glossy.png"
+      />
+      <div className="flex flex-row w-full items-center space-x-6">
+        <div className="w-3/4">
+          <MultiFileDropzone
+            value={fileStates}
+            onChange={(files) => {
+              setFileStates(files);
+            }}
+            dropzoneOptions={{ maxFiles: 1 }}
+            // onFilesAdded={async (addedFiles) => {
+            //   setFileStates([...fileStates, ...addedFiles]);
+            //   await Promise.all(
+            //     addedFiles.map(async (addedFileState) => {
+            //       try {
+            //         const res = await edgestore.myPublicFiles.upload({
+            //           file: addedFileState.file,
+            //           options: {
+            //             temporary: true,
+            //           },
+            //           onProgressChange: async (progress: number) => {
+            //             updateFileProgress(addedFileState.key, progress);
+            //             if (progress === 100) {
+            //               // wait 1 second to set it to complete
+            //               // so that the user can see the progress bar at 100%
+            //               await new Promise((resolve) =>
+            //                 setTimeout(resolve, 1000)
+            //               );
+            //               updateFileProgress(addedFileState.key, 'COMPLETE');
+            //             }
+            //           },
+            //         });
+            //         console.log(res, 'ressssss');
+            //       } catch (err) {
+            //         updateFileProgress(addedFileState.key, 'ERROR');
+            //       }
+            //     })
+            //   );
+            // }}
+          />
+        </div>
+
+        <div className="flex flex-col w-1/4">
+          <p>Cần trả phí để xem</p>
+          <Switch
+            checked={episodes[0]?.IsFree ?? false}
+            onCheckedChange={(checked) => {
+              if (episodes.length > 0) {
+                const updatedEpisodes = [...episodes];
+                updatedEpisodes[0] = { ...updatedEpisodes[0], IsFree: checked };
+                setEpisodes(updatedEpisodes);
+              }
+            }}
+          />
+        </div>
+      </div>
     </div>
+  );
+}
+
+function UploadMovieSeries({
+  newFilm,
+  setNewFilm,
+}: {
+  newFilm: CustomDetailFilmType;
+  setNewFilm: (film: any) => void;
+}) {
+  const [newSeasonName, setNewSeasonName] = useState('');
+  const [currentSeasonId, setCurrentSeasonId] = useState(
+    newFilm.Seasons[0]?.Id || ''
+  );
+
+  // Thêm mùa mới
+  const addSeason = () => {
+    if (!newSeasonName) return; // Prevent adding empty season names
+    const newSeason = {
+      Id: uuidv4(),
+      Order: newFilm.Seasons.length + 1,
+      Name: newSeasonName,
+      FilmId: newFilm.Id,
+      Episodes: [], // Initialize with an empty array for episodes
+    };
+
+    setNewFilm((prevFilm: any) => ({
+      ...prevFilm,
+      Seasons: [...prevFilm.Seasons, newSeason],
+    }));
+    setNewSeasonName(''); // Clear the input after adding
+  };
+
+  // Xóa mùa
+  const removeSeason = (seasonId: string) => {
+    setNewFilm((prevFilm: any) => ({
+      ...prevFilm,
+      Seasons: prevFilm.Seasons.filter((season: any) => season.Id !== seasonId),
+    }));
+    // Reset current season ID if the removed season was selected
+    if (currentSeasonId === seasonId) {
+      setCurrentSeasonId(newFilm.Seasons[0]?.Id || ''); // Set to first season or empty
+    }
+  };
+
+  // Cập nhật tên mùa
+  const updateSeasonName = (seasonId: string, newName: string) => {
+    setNewFilm((prevFilm: any) => ({
+      ...prevFilm,
+      Seasons: prevFilm.Seasons.map((season: any) =>
+        season.Id === seasonId ? { ...season, Name: newName } : season
+      ),
+    }));
+  };
+
+  return (
+    <main className="bg-white p-6">
+      <header className="mb-12">
+        <h1 className="text-2xl font-medium text-center text-global-neutral-grey-1300">
+          Thêm bộ phim mới
+        </h1>
+      </header>
+
+      <div className="max-w-[881px] mx-auto space-y-6">
+        {/* Input for New Season */}
+        <div className="flex items-start gap-2.5">
+          <Input
+            className="h-[60px] flex-1"
+            placeholder="Tên mùa mới"
+            value={newSeasonName}
+            onChange={(e) => setNewSeasonName(e.target.value)} // Update the new season name state
+          />
+          <Button
+            className="h-[60px] bg-red-700 hover:bg-red-800 text-white text-xl font-normal"
+            size="lg"
+            onClick={addSeason} // Call addSeason on button click
+          >
+            <span>Thêm mùa mới</span>
+            <Plus className="w-5 h-5 ml-2" />
+          </Button>
+        </div>
+
+        {/* Select for Existing Seasons */}
+        <div className="flex items-start gap-2.5">
+          <Select
+            value={currentSeasonId}
+            onValueChange={(seasonId) => setCurrentSeasonId(seasonId)} // Update the current season ID
+          >
+            <SelectTrigger className="h-[60px] flex-1">
+              <SelectValue placeholder="Chọn mùa" />
+            </SelectTrigger>
+            <SelectContent>
+              {newFilm.Seasons.map((season) => (
+                <SelectItem key={season.Id} value={season.Id}>
+                  {season.Name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-[60px] bg-movie-1-neutrals-neutrals100"
+            onClick={() => removeSeason(currentSeasonId)} // Call removeSeason on button click
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+
+        {/* Episode Form for Selected Season */}
+        {newFilm.Seasons.map((season) => {
+          if (season.Id === currentSeasonId) {
+            return (
+              <EpisodeForm
+                key={season.Id}
+                newFilm={newFilm}
+                setNewFilm={setNewFilm}
+                seasonId={season.Id}
+              />
+            );
+          }
+          return null; // Return null for other seasons
+        })}
+      </div>
+    </main>
   );
 }
 
