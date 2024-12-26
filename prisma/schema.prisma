@@ -203,15 +203,16 @@ model MyFilms {
 model Payments {
   Id                                                  String        @id(map: "PK_Payments") @db.Uuid
   ApplicationUserId                                   String        @db.Uuid
-  PlanId                                              String        @db.Uuid
+  PlanId                                              String?       @default(dbgenerated("'00000000-0000-0000-0000-000000000000'::uuid")) @db.Uuid
   CreatedAt                                           DateTime      @db.Timestamptz(6)
   IsDone                                              Boolean
   Amount                                              Int?
   EndDate                                             DateTime?     @db.Date
   StartDate                                           DateTime?     @db.Date
+  PlanName                                            String        @default("")
   AspNetUsers_AspNetUsers_PaymentIdToPayments         AspNetUsers[] @relation("AspNetUsers_PaymentIdToPayments")
   AspNetUsers_Payments_ApplicationUserIdToAspNetUsers AspNetUsers   @relation("Payments_ApplicationUserIdToAspNetUsers", fields: [ApplicationUserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_Payments_AspNetUsers_ApplicationUserId")
-  Plans                                               Plans         @relation(fields: [PlanId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_Payments_Plans_PlanId")
+  Plans                                               Plans?        @relation(fields: [PlanId], references: [Id], onUpdate: NoAction, map: "FK_Payments_Plans_PlanId")
 
   @@index([ApplicationUserId], map: "IX_Payments_ApplicationUserId")
   @@index([PlanId], map: "IX_Payments_PlanId")
@@ -235,7 +236,6 @@ model Plans {
   Name     String
   Price    Int
   Duration Int
-  Order    Int
   Payments Payments[]
 }
 

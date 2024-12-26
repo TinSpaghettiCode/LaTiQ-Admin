@@ -8,7 +8,7 @@ export default function Home() {
 
   useEffect(() => {
     // Chuyển hướng đến trang Dashboard khi người dùng truy cập vào trang chính
-    router.push('/pages/dashboard');
+    router.push('/pages/manage-movies');
   }, [router]);
 
   return null; // Không cần render gì ở đây

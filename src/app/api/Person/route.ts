@@ -1,7 +1,8 @@
 // import { v4 as uuidv4 } from 'uuid';
 
-import { PrismaClient } from '@prisma/client';
+import { Persons, PrismaClient } from '@prisma/client';
 import { NextResponse } from 'next/server';
+import { GET } from '../Film/route';
 
 const prisma = new PrismaClient();
 
@@ -24,6 +25,19 @@ export async function POST() {
     return NextResponse.json(newPerson, { status: 200 });
   } catch (error) {
     console.error('Error creating person:', error);
+    return NextResponse.json(
+      { error: 'Internal Server Error', details: error },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET() {
+  try {
+    const persons: Persons[] = await prisma.persons.findMany();
+    return NextResponse.json(persons, { status: 200 });
+  } catch (error) {
+    console.error('Error fetching persons:', error);
     return NextResponse.json(
       { error: 'Internal Server Error', details: error },
       { status: 500 }

@@ -3,7 +3,7 @@
 import React, { SetStateAction, Dispatch } from 'react';
 import { IconType } from 'react-icons';
 import {
-  MdDashboard,
+  // MdDashboard,
   MdFolderSpecial,
   MdSupervisorAccount,
 } from 'react-icons/md';
@@ -29,23 +29,23 @@ export const RouteSelect = ({
 
   return (
     <div className="space-y-1">
-      <Route
+      {/* <Route
         Icon={MdDashboard}
         selected={selectedRoute === '/pages/dashboard'}
         title="Dashboard"
         onClick={() => handleRouteChange('/pages/dashboard')}
+      /> */}
+      <Route
+        Icon={PiFilmReelFill}
+        selected={selectedRoute === '/pages/manage-movies'}
+        title="Quản lý phim"
+        onClick={() => handleRouteChange('/pages/manage-movies')}
       />
       <Route
         Icon={GiRainbowStar}
         selected={selectedRoute === '/pages/subscriptions'}
         title="Quản lý gói"
         onClick={() => handleRouteChange('/pages/subscriptions')}
-      />
-      <Route
-        Icon={PiFilmReelFill}
-        selected={selectedRoute === '/pages/manage-movies'}
-        title="Quản lý phim"
-        onClick={() => handleRouteChange('/pages/manage-movies')}
       />
       <Route
         Icon={MdFolderSpecial}

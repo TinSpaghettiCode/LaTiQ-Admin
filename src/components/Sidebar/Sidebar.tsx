@@ -7,7 +7,7 @@ import { RouteSelect } from './RouteSelect';
 import { Plan } from './Plan';
 
 export const Sidebar = () => {
-  const [selectedRoute, setSelectedRoute] = useState('/pages/dashboard');
+  const [selectedRoute, setSelectedRoute] = useState('/pages/manage-movies');
 
   return (
     <div className="flex flex-col">

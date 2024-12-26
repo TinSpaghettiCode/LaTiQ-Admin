@@ -44,7 +44,7 @@ export async function POST() {
     // Dữ liệu mẫu cho phim
     const dummyFilm = {
       Id: uuidv4(),
-      Name: 'The Dark Knight',
+      Name: 'The Light Knight',
       Overview:
         'When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests of his ability to fight injustice.',
       BackdropPath: '/path/to/backdrop/dark-knight.jpg',
