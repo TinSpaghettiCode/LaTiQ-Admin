@@ -11,12 +11,9 @@ export type CustomDetailFilmType = Prisma.Films & {
     Episodes: Prisma.Episodes[];
   })[];
 
-  GenreFilms: {
-    Genres: {
-      Id: string;
-      Name: string;
-    };
-  }[];
+  GenreFilms: string[];
+
+  Topics: string[];
 
   Casts: {
     Character: string;

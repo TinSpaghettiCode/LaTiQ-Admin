@@ -12,8 +12,8 @@ function AccountToggle() {
           className="size-8 rounded srhink-0 bg-violet-300 shadow"
         />
         <div className="text-start">
-          <span className="text-sm font-bold block">LaTiQ Admin</span>
-          <span className="text-xs block text-stone-500">admin@latiq.dev</span>
+          <span className="text-sm font-bold block">Vivoid Admin</span>
+          <span className="text-xs block text-stone-500">admin@vivoid.dev</span>
         </div>
 
         <FiChevronDown className="absolute right-2 top-1/2 translate-y-[calc(-50%+4px)] text-xs" />

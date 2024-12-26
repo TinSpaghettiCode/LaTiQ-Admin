@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 
 export function LoginForm({
   className,
@@ -14,6 +15,7 @@ export function LoginForm({
   const passwordRef = useRef<HTMLInputElement>(null);
 
   const { login } = useAuth();
+  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault(); // Prevent the default form submission
@@ -51,6 +53,7 @@ export function LoginForm({
           // Show success toast
           console.log('Login successful:', data.result);
           login();
+          router.push('/pages/manage-movies'); // Redirect to home page
         } else {
           throw new Error(
             'Đăng nhập thất bại, kiểm tra lại tài khoản và mật khẩu.'
@@ -60,7 +63,7 @@ export function LoginForm({
       {
         loading: <b>Đang đăng nhập...</b>,
         success: <b>Đăng nhập thành công!</b>,
-        error: <b>Đã có lỗi xảy ra. Vui lòng thử lại!</b>,
+        error: <b>Tên đăng nhập hoặc mật khẩu sai!</b>,
       }
     );
   };

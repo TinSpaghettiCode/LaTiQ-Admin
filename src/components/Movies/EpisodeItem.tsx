@@ -22,23 +22,43 @@ export default function EpisodeItem({
   onUpdate,
 }: EpisodeItemProps) {
   const [error, setError] = useState<string | null>(null); // Trạng thái để lưu thông báo lỗi
-  const [confirmUploaded, setConfirmUploaded] = useState<boolean>(false);
+  const [confirmUploadVideo, setConfirmUploadVideo] = useState<boolean>(false);
+  const [confirmUploadStill, setConfirmUploadStill] = useState<boolean>(false);
 
   // Quản lý video
-  const [fileStates, setFileStates] = useState<FileState[]>([]);
+  const [videoFileStates, setVideoFileStates] = useState<FileState[]>([]);
+  const [stillPathStates, setStillPathStates] = useState<FileState[]>([]);
+
   const { edgestore } = useEdgeStore();
 
-  function updateFileProgress(key: string, progress: FileState['progress']) {
-    setFileStates((fileStates: FileState[]) => {
-      const newFileStates = structuredClone(fileStates);
-      const fileState = newFileStates.find(
-        (fileState) => fileState.key === key
-      );
-      if (fileState) {
-        fileState.progress = progress;
-      }
-      return newFileStates;
-    });
+  function updateFileProgress(
+    key: string,
+    progress: FileState['progress'],
+    type: 'video' | 'still' // Tham số để xác định loại trạng thái tệp
+  ) {
+    if (type === 'video') {
+      setVideoFileStates((videoFileStates: FileState[]) => {
+        const newVideoFileStates = structuredClone(videoFileStates);
+        const fileState = newVideoFileStates.find(
+          (fileState) => fileState.key === key
+        );
+        if (fileState) {
+          fileState.progress = progress;
+        }
+        return newVideoFileStates;
+      });
+    } else if (type === 'still') {
+      setStillPathStates((stillPathStates: FileState[]) => {
+        const newStillPathStates = structuredClone(stillPathStates);
+        const fileState = newStillPathStates.find(
+          (fileState) => fileState.key === key
+        );
+        if (fileState) {
+          fileState.progress = progress;
+        }
+        return newStillPathStates;
+      });
+    }
   }
 
   const handleUpdate = (
@@ -54,11 +74,21 @@ export default function EpisodeItem({
       setError('Phụ đề là bắt buộc.');
       return;
     }
+    if (field === 'Duration') {
+      const durationValue = Number(value); // Chuyển đổi giá trị thành số
+      if (!value || isNaN(durationValue) || !Number.isInteger(durationValue)) {
+        setError('Thời gian phải là một số nguyên và không được trống.');
+        return;
+      }
+    }
     setError(null); // Xóa thông báo lỗi nếu tất cả các trường hợp đều hợp lệ
     onUpdate(field, value);
   };
 
-  const handleUploadFiles = async (addedFiles: FileState[]) => {
+  const handleUploadFiles = async (
+    addedFiles: FileState[],
+    type: 'video' | 'still'
+  ) => {
     await Promise.all(
       addedFiles.map(async (addedFileState) => {
         try {
@@ -68,19 +98,22 @@ export default function EpisodeItem({
               temporary: true,
             },
             onProgressChange: async (progress: number) => {
-              updateFileProgress(addedFileState.key, progress);
+              updateFileProgress(addedFileState.key, progress, type); // Cập nhật tiến trình với loại tệp
               if (progress === 100) {
-                // wait 1 second to set it to complete
-                // so that the user can see the progress bar at 100%
+                // Chờ 1 giây để hiển thị thanh tiến trình ở 100%
                 await new Promise((resolve) => setTimeout(resolve, 1000));
-                updateFileProgress(addedFileState.key, 'COMPLETE');
+                updateFileProgress(addedFileState.key, 'COMPLETE', type); // Cập nhật trạng thái hoàn thành
               }
             },
           });
 
-          onUpdate('Source', res.url);
+          if (type == 'still') {
+            onUpdate('StillPath', res.url);
+          } else {
+            onUpdate('Source', res.url); // Cập nhật nguồn với URL đã tải lên
+          }
         } catch (error) {
-          updateFileProgress(addedFileState.key, 'ERROR');
+          updateFileProgress(addedFileState.key, 'ERROR', type); // Cập nhật trạng thái lỗi
           console.log(error, 'error upload video');
         }
       })
@@ -90,19 +123,37 @@ export default function EpisodeItem({
   return (
     <div>
       <div className="flex items-start gap-2.5">
-        <div className="grid grid-cols-3 flex-1 gap-2.5">
-          <Input
-            className="h-[60px]"
-            placeholder="Tiêu đề tập"
-            value={episode.Title}
-            onChange={(e) => handleUpdate('Title', e.target.value)}
-          />
-          <Input
-            className="h-[60px] col-span-2"
-            placeholder="Phụ đề"
-            value={episode.Summary}
-            onChange={(e) => handleUpdate('Summary', e.target.value)}
-          />
+        <div className="grid grid-cols-3 flex-1 gap-2.5 mt-2">
+          <div>
+            <span className="text-slate-500 text-sm">Tập phim</span>
+
+            <Input
+              className="h-[60px]"
+              placeholder="Tiêu đề tập"
+              value={episode.Title}
+              onChange={(e) => handleUpdate('Title', e.target.value)}
+            />
+          </div>
+
+          <div>
+            <span className="text-slate-500 text-sm">Tóm tắt</span>
+            <Input
+              className="h-[60px]"
+              placeholder="Phụ đề"
+              value={episode.Summary}
+              onChange={(e) => handleUpdate('Summary', e.target.value)}
+            />
+          </div>
+
+          <div className="col-span-1 ">
+            <span className="text-slate-500 text-sm">Thời lượng</span>
+            <Input
+              className="h-[60px]"
+              placeholder="Thời lượng"
+              value={episode.Duration}
+              onChange={(e) => handleUpdate('Duration', e.target.value)}
+            />
+          </div>
         </div>
         <Button
           variant="ghost"
@@ -116,11 +167,13 @@ export default function EpisodeItem({
       {error && <p className="text-red-500 text-sm">{error}</p>}{' '}
       {/* Hiển thị thông báo lỗi */}
       <div className="flex items-center gap-2.5 mt-2.5">
+        <span className="text-slate-500 text-sm pr-2">Upload phim</span>
+
         <MultiFileDropzone
           className="flex-grow min-h-[50px]"
-          value={fileStates}
+          value={videoFileStates}
           onChange={(files) => {
-            setFileStates(files);
+            setVideoFileStates(files);
           }}
           dropzoneOptions={{
             maxFiles: 1,
@@ -130,27 +183,57 @@ export default function EpisodeItem({
           }}
         />
 
-        {!confirmUploaded && (
+        {!confirmUploadVideo && (
           <Button
             className="ml-2 bg-red-700 hover:bg-red-800 rounded-sm"
             onClick={() => {
-              setConfirmUploaded(true);
-              handleUploadFiles(fileStates);
+              setConfirmUploadVideo(true);
+              handleUploadFiles(videoFileStates, 'video');
             }}
-            disabled={fileStates.length === 0}
+            disabled={videoFileStates.length === 0}
           >
             <Upload className="w-5 h-5 text-white" />
           </Button>
         )}
 
         <div className="w-[237px] h-[60px] flex items-center justify-end gap-6">
-          <span className="text-base opacity-80 ">Trả phí</span>
+          <span className="text-base opacity-80 ">Miễn phí</span>
           <Switch
             className="data-[state=checked]:bg-green-400"
             checked={episode.IsFree}
             onCheckedChange={(checked) => handleUpdate('IsFree', checked)}
           />
         </div>
+      </div>
+      <div className="flex items-center gap-2.5 mt-2.5">
+        <span className="text-slate-500 text-sm">Upload ảnh</span>
+
+        <MultiFileDropzone
+          className="flex-grow min-h-[50px]"
+          value={stillPathStates}
+          onChange={(files) => {
+            setStillPathStates(files);
+          }}
+          dropzoneOptions={{
+            maxFiles: 1,
+            accept: {
+              'image/*': [],
+            },
+          }}
+        />
+
+        {!confirmUploadStill && (
+          <Button
+            className="ml-2 bg-red-700 hover:bg-red-800 rounded-sm"
+            onClick={() => {
+              setConfirmUploadStill(true);
+              handleUploadFiles(stillPathStates, 'still');
+            }}
+            disabled={stillPathStates.length === 0}
+          >
+            <Upload className="w-5 h-5 text-white" />
+          </Button>
+        )}
       </div>
       <Separator className="my-6 bg-neutral-300" />
     </div>

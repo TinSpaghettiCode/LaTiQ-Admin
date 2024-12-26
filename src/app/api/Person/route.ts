@@ -24,7 +24,6 @@ export async function POST() {
 
     return NextResponse.json(newPerson, { status: 200 });
   } catch (error) {
-    console.error('Error creating person:', error);
     return NextResponse.json(
       { error: 'Internal Server Error', details: error },
       { status: 500 }
@@ -37,7 +36,6 @@ export async function GET() {
     const persons: Persons[] = await prisma.persons.findMany();
     return NextResponse.json(persons, { status: 200 });
   } catch (error) {
-    console.error('Error fetching persons:', error);
     return NextResponse.json(
       { error: 'Internal Server Error', details: error },
       { status: 500 }

@@ -111,7 +111,6 @@ export async function POST() {
 
     return NextResponse.json(newFilm, { status: 200 });
   } catch (error) {
-    console.error('Error creating film:', error);
     return NextResponse.json(
       { error: 'Internal Server Error', details: error },
       { status: 500 }
