@@ -23,39 +23,58 @@ import * as Prisma from '@prisma/client';
 import Loading from '../Loading';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { RiseLoader } from 'react-spinners';
-import { CustomDetailFilmType, CustomFilmType } from '@/types/customTypes';
+import { CustomFilmType } from '@/types/customTypes';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../ui/alert-dialog';
+import toast from 'react-hot-toast';
 
 const MovieManagerContent: React.FC = () => {
   const [layout, setLayout] = useState<'grid' | 'table'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [movies, setMovies] = useState<CustomFilmType[]>([]); // State để lưu trữ dữ liệu phim
-  const [selectedMovie, setSelectedMovie] = useState<CustomDetailFilmType>();
+  const [selectedMovie, setSelectedMovie] = useState<string>();
   const router = useRouter();
   const { ref, inView } = useInView();
   const LIMIT = 10;
 
   // Tanstack react-query
-  const { data, error, status, fetchNextPage, isFetching, hasNextPage } =
-    useInfiniteQuery({
-      queryKey: ['films'],
-      queryFn: async ({ pageParam = 0 }) => {
-        const response = await fetch(
-          `/api/Film?pageIndex=${pageParam}&pageSize=${LIMIT}`
-        );
+  const {
+    data,
+    error,
+    status,
+    fetchNextPage,
+    isFetching,
+    hasNextPage,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey: ['films'],
+    queryFn: async ({ pageParam = 0 }) => {
+      const response = await fetch(
+        `/api/Film?pageIndex=${pageParam}&pageSize=${LIMIT}`
+      );
 
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return response.json();
-      },
-      initialPageParam: 0,
-      getNextPageParam: (lastPage) => {
-        return lastPage.result.pageIndex + 1 <
-          Math.ceil(lastPage.result.totalCount / LIMIT)
-          ? lastPage.result.pageIndex + 1
-          : undefined;
-      },
-    });
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => {
+      return lastPage.result.pageIndex + 1 <
+        Math.ceil(lastPage.result.totalCount / LIMIT)
+        ? lastPage.result.pageIndex + 1
+        : undefined;
+    },
+  });
 
   const totalPages = data?.pages[0]?.result.totalCount
     ? Math.ceil(data.pages[0].result.totalCount / LIMIT)
@@ -83,16 +102,44 @@ const MovieManagerContent: React.FC = () => {
 
   // Lấy thông tin film khi click
   const handleSelectMovie = async (id: string) => {
-    const response = await fetch(`/pages/api/Film/${id}`);
-    const data = await response.json();
-    setSelectedMovie(data);
+    setSelectedMovie(id);
   };
 
-  useEffect(() => {
-    if (selectedMovie) {
-      console.log(selectedMovie, 'movieeeee');
-    }
-  }, [selectedMovie]);
+  const handleDeleteMovie = async (): Promise<void> => {
+    if (!selectedMovie) return; // Kiểm tra nếu không có selectedMovie
+
+    // Use toast.promise to handle the promise
+    toast.promise(
+      fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/Film/${selectedMovie}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+        }
+      ).then(async (response) => {
+        if (!response.ok) {
+          throw new Error('Failed to delete the movie');
+        }
+
+        // Cập nhật lại danh sách phim sau khi xóa
+        setMovies((prevMovies) =>
+          prevMovies.filter((movie) => movie.Id !== selectedMovie)
+        );
+        setSelectedMovie(undefined); // Reset selectedMovie
+      }),
+      {
+        loading: 'Vui lòng chờ trong giây lát...',
+        success: (data) => {
+          console.log('API response:', data);
+          refetch(); // Refetch lại dữ liệu
+          return 'Phim đã được xóa thành công!';
+        },
+        error: (error) => `Lỗi khi xóa phim: ${error.message}`,
+      }
+    );
+  };
 
   return (
     <div className="flex-1">
@@ -158,7 +205,7 @@ const MovieManagerContent: React.FC = () => {
       </div>
 
       {/* Action Bar */}
-      <div className="p-5 flex justify-end gap-2">
+      <div className="p-5 flex justify-end gap-2 sticky top-0 bg-white z-10 rounded-b-sm">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className="bg-red-700 hover:bg-red-800 gap-2">
@@ -186,16 +233,40 @@ const MovieManagerContent: React.FC = () => {
         <Button
           variant="secondary"
           className="bg-gray-400 hover:bg-slate-500 text-white gap-2"
+          onClick={() =>
+            router.push(`/pages/manage-movies/edit-movie/${selectedMovie}`)
+          }
         >
           Chỉnh sửa
           <Edit3 className="w-5 h-5" />
         </Button>
-        <Button
-          size="icon"
-          className="bg-gray-400 hover:bg-slate-500 w-[39px] h-[39px] mr-1"
-        >
-          <Trash2 className="w-6 h-6" />
-        </Button>
+
+        {/* Xóa */}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              size="icon"
+              className="bg-gray-400 hover:bg-slate-500 w-[39px] h-[39px] mr-1"
+            >
+              <Trash2 className="w-6 h-6" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Bạn có chắc chắn không?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Hành động này không thể hoàn tác. Dữ liệu của phim sẽ được xóa
+                ra khỏi cơ sở dữ liệu!
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Hủy bỏ</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteMovie}>
+                Tiếp tục
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {/* Movie Grid */}
@@ -212,7 +283,11 @@ const MovieManagerContent: React.FC = () => {
           {filteredMovies.map((movie: Prisma.Films, index: number) => (
             <Card
               key={`${movie.Id}-${index}`}
-              className={`w-full rounded-lg overflow-hidden cursor-pointer hover:border-red-800 border-4`}
+              className={`w-full rounded-lg overflow-hidden cursor-pointer hover:border-red-800 border-4 ${
+                selectedMovie === movie.Id
+                  ? 'border-red-800'
+                  : 'border-slate-200'
+              }`}
             >
               <CardContent
                 className="p-0"

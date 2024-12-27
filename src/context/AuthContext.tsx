@@ -14,8 +14,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   useEffect(() => {
-    // Check if the user is authenticated (e.g., check local storage or API)
-    const token = localStorage.getItem('token'); // Example check
+    // Kiểm tra xem người dùng đã đăng nhập hay chưa
+    const token = localStorage.getItem('accessToken'); // Lấy token từ localStorage
     if (token) {
       setIsAuthenticated(true);
     }
@@ -23,12 +23,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const login = () => {
     setIsAuthenticated(true);
-    // You can also set a token in local storage here
   };
 
   const logout = () => {
     setIsAuthenticated(false);
-    // Remove token from local storage here
+    localStorage.removeItem('accessToken'); // Xóa token khi đăng xuất
   };
 
   return (

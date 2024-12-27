@@ -31,6 +31,16 @@ export async function GET(
           Persons: true,
         },
       },
+      GenreFilms: {
+        include: {
+          Genres: true,
+        },
+      },
+      TopicFilms: {
+        include: {
+          Topics: true,
+        },
+      },
     },
   });
 

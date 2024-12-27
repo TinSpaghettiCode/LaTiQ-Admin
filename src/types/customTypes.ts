@@ -27,6 +27,7 @@ export type CustomDetailFilmType = Prisma.Films & {
       KnownForDepartment: string | null;
       Dob: Date | null;
     };
+    PersonId: string;
   }[];
 
   Crews: {
@@ -41,5 +42,6 @@ export type CustomDetailFilmType = Prisma.Films & {
       KnownForDepartment: string | null;
       Dob: Date | null;
     };
+    PersonId: string;
   }[];
 };

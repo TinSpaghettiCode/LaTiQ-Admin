@@ -48,26 +48,36 @@ const steps = [
   { id: 4, title: 'Diễn viên tham gia' },
 ];
 
-export function MultiStepMovieAddition() {
+export function MultiStepMovieAddition({
+  isEditMode = false,
+  existingFilm,
+}: {
+  isEditMode?: boolean;
+  existingFilm?: CustomDetailFilmType;
+}) {
   // Film được tạo
-  const [newFilm, setNewFilm] = useState<CustomDetailFilmType>({
-    Id: uuidv4(),
-    Name: '',
-    Overview: '',
-    BackdropPath: '',
-    PosterPath: '',
-    ContentRating: '',
-    ReleaseDate: new Date(),
-    GenreFilms: [],
-    Topics: [],
-    Seasons: [],
-    Crews: [],
-    Casts: [],
-  });
+  const [newFilm, setNewFilm] = useState<CustomDetailFilmType>(
+    isEditMode && existingFilm
+      ? existingFilm
+      : {
+          Id: uuidv4(),
+          Name: '',
+          Overview: '',
+          BackdropPath: '',
+          PosterPath: '',
+          ContentRating: '',
+          ReleaseDate: new Date(),
+          GenreFilms: [],
+          Topics: [],
+          Seasons: [],
+          Crews: [],
+          Casts: [],
+        }
+  );
 
   useEffect(() => {
     console.log(newFilm, 'newFilmmmm');
-  });
+  }, [newFilm]);
 
   const [currentStep, setCurrentStep] = useState(1);
   // Variables for step 1
@@ -101,6 +111,10 @@ export function MultiStepMovieAddition() {
   const [selectedCasts, setSelectedCasts] = useState<string[]>(
     newFilm.Casts.map((cast) => cast.Persons.Id)
   );
+
+  useEffect(() => {
+    console.log(selectedCasts, 'selectedCasts');
+  }, [selectedCasts]);
 
   const router = useRouter();
 
