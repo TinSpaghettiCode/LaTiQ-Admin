@@ -41,7 +41,7 @@ export const RouteSelect = ({
         title="Quản lý phim"
         onClick={() => handleRouteChange('/pages/manage-movies')}
       />
-      <Route
+      {/* <Route
         Icon={GiRainbowStar}
         selected={selectedRoute === '/pages/subscriptions'}
         title="Quản lý gói"
@@ -58,7 +58,7 @@ export const RouteSelect = ({
         selected={selectedRoute === '/pages/manage-accounts'}
         title="Quản lý tài khoản"
         onClick={() => handleRouteChange('/pages/manage-accounts')}
-      />
+      /> */}
     </div>
   );
 };

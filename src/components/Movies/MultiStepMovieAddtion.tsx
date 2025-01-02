@@ -693,7 +693,6 @@ function UploadMovieSeries({
 
   // Thêm mùa mới
   const addSeason = () => {
-    if (!newSeasonName) return; // Prevent adding empty season names
     const newSeason = {
       Id: uuidv4(),
       Order: newFilm.Seasons.length + 1,
