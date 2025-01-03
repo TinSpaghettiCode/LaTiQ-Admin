@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -25,9 +25,51 @@ export default function EpisodeItem({
   const [confirmUploadVideo, setConfirmUploadVideo] = useState<boolean>(false);
   const [confirmUploadStill, setConfirmUploadStill] = useState<boolean>(false);
 
-  // Quản lý video
+  // Quản lý video & ảnh tĩnh
   const [videoFileStates, setVideoFileStates] = useState<FileState[]>([]);
   const [stillPathStates, setStillPathStates] = useState<FileState[]>([]);
+
+  // Hàm để lấy phần mở rộng từ loại MIME
+  function getFileExtension(mimeType: string): string {
+    switch (mimeType) {
+      case 'video/mp4':
+        return 'mp4';
+      case 'image/jpeg':
+        return 'jpg';
+      case 'image/png':
+        return 'png';
+      // Thêm các loại MIME khác nếu cần
+      default:
+        return 'bin'; // Trả về 'bin' nếu không xác định được loại
+    }
+  }
+
+  useEffect(() => {
+    const loadFile = async (url: string, type: 'video' | 'image') => {
+      const response = await fetch(url);
+      const blob = await response.blob(); // Chuyển đổi phản hồi thành Blob
+      const file = new File(
+        [blob],
+        `${type}_${episode.Order}.${getFileExtension(blob.type)}`, // Sử dụng hàm để lấy phần mở rộng từ loại MIME
+        { type: blob.type } // Sử dụng loại MIME từ blob
+      );
+      return file;
+    };
+
+    // Tải video nếu có
+    if (episode.Source) {
+      loadFile(episode.Source, 'video').then((file) => {
+        setVideoFileStates([{ file, key: episode.Id, progress: 'COMPLETE' }]);
+      });
+    }
+
+    // Tải ảnh nếu có
+    if (episode.StillPath) {
+      loadFile(episode.StillPath, 'image').then((file) => {
+        setStillPathStates([{ file, key: episode.Id, progress: 'COMPLETE' }]);
+      });
+    }
+  }, [episode]);
 
   const { edgestore } = useEdgeStore();
 
@@ -190,7 +232,7 @@ export default function EpisodeItem({
               setConfirmUploadVideo(true);
               handleUploadFiles(videoFileStates, 'video');
             }}
-            disabled={videoFileStates.length === 0}
+            disabled={videoFileStates.length === 0 || episode.Source !== ''}
           >
             <Upload className="w-5 h-5 text-white" />
           </Button>
@@ -229,7 +271,7 @@ export default function EpisodeItem({
               setConfirmUploadStill(true);
               handleUploadFiles(stillPathStates, 'still');
             }}
-            disabled={stillPathStates.length === 0}
+            disabled={stillPathStates.length === 0 || episode.StillPath !== ''}
           >
             <Upload className="w-5 h-5 text-white" />
           </Button>

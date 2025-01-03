@@ -210,6 +210,7 @@ model Payments {
   EndDate                                             DateTime?     @db.Date
   StartDate                                           DateTime?     @db.Date
   PlanName                                            String        @default("")
+  MethodName                                          String        @default("")
   AspNetUsers_AspNetUsers_PaymentIdToPayments         AspNetUsers[] @relation("AspNetUsers_PaymentIdToPayments")
   AspNetUsers_Payments_ApplicationUserIdToAspNetUsers AspNetUsers   @relation("Payments_ApplicationUserIdToAspNetUsers", fields: [ApplicationUserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_Payments_AspNetUsers_ApplicationUserId")
   Plans                                               Plans?        @relation(fields: [PlanId], references: [Id], onUpdate: NoAction, map: "FK_Payments_Plans_PlanId")

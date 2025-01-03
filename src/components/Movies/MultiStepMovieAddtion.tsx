@@ -112,9 +112,8 @@ export function MultiStepMovieAddition({
     newFilm.Casts.map((cast) => cast.Persons.Id)
   );
 
-  useEffect(() => {
-    console.log(selectedCasts, 'selectedCasts');
-  }, [selectedCasts]);
+  // State for submitting
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const router = useRouter();
 
@@ -212,9 +211,10 @@ export function MultiStepMovieAddition({
               onClick={async () => {
                 if (currentStep === steps.length) {
                   // Gọi API POST tại bước cuối
+                  if (isSubmitting) return; // Nếu đang gửi, không làm gì cả
+                  setIsSubmitting(true); // Đặt trạng thái gửi thành true
                   try {
                     const payload = JSON.stringify({
-                      id: newFilm.Id, // ID phim
                       name: newFilm.Name, // Tên phim
                       overview: newFilm.Overview, // Tổng quan
                       posterPath: newFilm.PosterPath, // Đường dẫn poster
@@ -225,8 +225,10 @@ export function MultiStepMovieAddition({
                         'yyyy-MM-dd'
                       ), // Ngày phát hành (định dạng lại)
                       seasons: newFilm.Seasons.map((season) => ({
+                        id: season.Id, // ID mùa
+                        order: season.Order, // Thứ tự mùa
                         name: season.Name, // Tên mùa
-                        filmId: season.FilmId, // ID phim
+                        filmId: newFilm.Id, // ID phim
                         film: null,
                         episodes: season.Episodes.map((episode) => ({
                           id: episode.Id, // ID tập
@@ -244,21 +246,35 @@ export function MultiStepMovieAddition({
                       genreFilms: newFilm.GenreFilms.map((id) => ({ id })), // Chuyển đổi thành mảng đối tượng
                       topicFilms: newFilm.Topics.map((id) => ({ id })), // Chuyển đổi thành mảng đối tượng
                       casts: newFilm.Casts.map((cast) => ({
+                        id: cast.Persons.Id, // ID người
                         character: cast.Character, // Nhân vật
+                        filmId: newFilm.Id, // ID phim
+                        film: null,
                         personId: cast.Persons.Id, // ID người
+                        person: null,
                       })),
                       crews: newFilm.Crews.map((crew) => ({
+                        id: crew.Persons.Id, // ID người
                         role: crew.Role, // Vai trò
+                        filmId: newFilm.Id, // ID phim
                         personId: crew.Persons.Id, // ID người
+                        film: null,
+                        person: null,
                       })),
+                      reviews: [],
                     });
                     console.log(payload, 'payloaddddd');
                     // Sử dụng toast.promise để hiển thị thông báo
                     const accessToken = localStorage.getItem('accessToken');
 
+                    const apiUrl = isEditMode
+                      ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/Film/${newFilm.Id}` // Sử dụng PUT với film_id
+                      : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/Film`; // Sử dụng POST nếu không ở chế độ chỉnh sửa
+
+                    const method = isEditMode ? 'PUT' : 'POST';
                     const data = await toast.promise(
-                      fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/Film`, {
-                        method: 'POST',
+                      fetch(apiUrl, {
+                        method: method,
                         headers: {
                           'Content-Type': 'application/json',
                           Authorization: `Bearer ${accessToken}`,
@@ -283,6 +299,8 @@ export function MultiStepMovieAddition({
                         },
                       }
                     );
+
+                    setIsSubmitting(false);
                   } catch (error) {
                     console.error('Error calling API:', error);
                     // Xử lý lỗi nếu cần
@@ -292,6 +310,7 @@ export function MultiStepMovieAddition({
                 }
               }}
               className="bg-[#c0000d] hover:bg-[#a0000b] text-white ml-auto"
+              disabled={isSubmitting} // Vô hiệu hóa nút nếu đang gửi
             >
               {currentStep === steps.length ? 'Hoàn thành' : 'Tiếp tục'}
             </Button>
@@ -439,7 +458,9 @@ function MovieImageUpload({
       <div className="flex flex-col justify-end gap-y-4 items-end">
         <div className="h-[8px] w-80 border rounded overflow-hidden">
           <div
-            className="h-full bg-red-700"
+            className={`h-full ${
+              progress === 100 ? 'bg-green-500' : 'bg-red-700'
+            }`}
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -453,7 +474,7 @@ function MovieImageUpload({
               const res = await edgestore.myPublicImages.upload({
                 file: backdropImage,
                 onProgressChange: (progress: any) => {
-                  setProgress(progress);
+                  console.log(progress);
                 },
               });
               setNewFilm((prevFilm: any) => ({
@@ -466,7 +487,7 @@ function MovieImageUpload({
               const res = await edgestore.myPublicImages.upload({
                 file: posterImage,
                 onProgressChange: (progress: any) => {
-                  console.log(progress);
+                  setProgress(progress);
                 },
               });
               setNewFilm((prevFilm: any) => ({
